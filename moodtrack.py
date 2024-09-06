@@ -15,7 +15,7 @@ def submit_entry():
     try:
         entry = request.json.get('entry')
         if not entry:
-            return jsonify({'message': 'No entry provided'}), 400
+            return jsonify({'message': 'No entry provided'}), 400 
         
         formatted_data = process_data(entry)
         if not formatted_data:
