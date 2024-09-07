@@ -15,13 +15,13 @@ def submit_entry():
     try:
         entry = request.json.get('entry')
         if not entry:
-            return jsonify({'message': 'No entry provided'}), 400
+            return jsonify({'message': 'No entry provided'}), 400 
         
-        formatted_data = data_processing.process_data(entry)
+        formatted_data = process_data(entry)
         if not formatted_data:
             return jsonify({'message': 'Failed to format data with ChatGPT.'}), 500
             
-        success = db_operations.insert_data_to_supabase(formatted_data)
+        success = insert_data_to_supabase(formatted_data)
         if not success:
             return jsonify({'message': 'Failed to insert data into Supabase.'}), 500
         
@@ -37,5 +37,11 @@ def submit_entry():
 # def serve_static(filename):
 #     return send_from_directory(os.path.abspath('.'), filename)
 
+#for testing locally i guess
+# if __name__ == '__main__':
+#     app.run(debug=True, host='0.0.0.0', port=5009)
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5009)
+    # Use port 5009 locally, but Heroku will override it with the `PORT` env variable
+    port = int(os.environ.get('PORT', 5009))
+    app.run(host='0.0.0.0', port=port, debug=True)
