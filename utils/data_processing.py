@@ -26,10 +26,11 @@ def process_data(entry):
     1. mood score
     2. mood description
     the output will be in a manner where I can simply copy what you give me and paste it into an excel table. The entries will be seperated by commas.
-    Do not round any of the scores I give you. 
+    Do not round any of the scores I give you.
+    Add double quotes " to the description.
     something like this: 
-    User Input: 5.5 deff feeling better. A little tired stil but it feel good waking up earlier for sure 100. Let's get the day moving
-    Output: 5.5,deff feeling better. A little tired still but it feels good waking up earlier for sure 100. Let's get the day moving
+    User Input: 5.5 deff feeling better. A little tired still, but it feel good waking up earlier for sure 100. Let's get the day moving
+    Output: 5.5,"deff feeling better. A little tired still, but it feels good waking up earlier for sure 100. Let's get the day moving"
     """
     
     # Define the data payload with the user's entry
