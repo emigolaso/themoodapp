@@ -10,6 +10,7 @@ load_dotenv()
 # Your Supabase API URL and key
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')
+SUPABASE_DB = os.getenv('SUPABASE_DB')
 
 # Function to insert data into Supabase
 def insert_data_to_supabase(data_string):
@@ -23,9 +24,9 @@ def insert_data_to_supabase(data_string):
     }
 
     data = {
-        "date": dsl[0],
-        "mood": dsl[1],
-        "description": dsl[2]
+        "date": re.findall("^[^,]+",data_string),
+        "mood": re.findall(",([^,]+),",data_string),
+        "description": re.findall('[^,]+,[^,]+,"(.*)"',data_string)
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
