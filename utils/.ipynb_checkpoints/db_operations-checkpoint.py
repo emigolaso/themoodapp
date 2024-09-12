@@ -16,7 +16,7 @@ SUPABASE_DB = os.getenv('SUPABASE_DB')
 # Function to insert data into Supabase
 def insert_data_to_supabase(data_string):
     dsl = re.split(",",data_string)
-    url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_DB}
+    url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_DB}"
     
     headers = {
         "apikey": SUPABASE_API_KEY,
