@@ -24,9 +24,9 @@ def insert_data_to_supabase(data_string):
     }
 
     data = {
-        "date": re.findall("^[^,]+",data_string),
-        "mood": re.findall(",([^,]+),",data_string),
-        "description": re.findall('[^,]+,[^,]+,"(.*)"',data_string)
+        "date": re.findall("^[^,]+",data_string)[0],
+        "mood": re.findall(",([^,]+),",data_string)[0],
+        "description": re.findall('[^,]+,[^,]+,"(.*)"',data_string)[0]
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
