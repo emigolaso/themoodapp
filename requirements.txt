@@ -6,3 +6,10 @@ supabase-py==0.0.2
 openai==0.27.0
 pytz==2023.3
 Werkzeug==2.2.2
+
+# Add these for Dash and Plotly
+dash==2.12.0
+dash-core-components==2.0.0
+dash-html-components==2.0.0
+dash-bootstrap-components==1.0.1
+plotly==5.12.0
