@@ -6,6 +6,7 @@ supabase==2.7.4
 openai==0.27.0
 pytz==2023.3
 Werkzeug==2.2.2
+pandas==2.2.2
 
 # Add these for Dash and Plotly
 dash==2.12.0
