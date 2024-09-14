@@ -16,9 +16,13 @@
             <button type="submit">Submit</button>
         </form>
 
+        <!-- Add a button to view the dashboard -->
+        <div>
+            <button onclick="location.href='/dashboard/'" style="margin-top: 20px;">View Dashboard</button>
+        </div>
+
         <div id="responseMessage"></div>
     </div>
 
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
 </body>
-</html>
