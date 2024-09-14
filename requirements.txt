@@ -2,7 +2,7 @@ Flask==2.2.2
 gunicorn==20.1.0
 requests==2.25.1
 python-dotenv==1.0.0
-supabase-py==0.0.2
+supabase-py==0.7.0
 openai==0.27.0
 pytz==2023.3
 Werkzeug==2.2.2
