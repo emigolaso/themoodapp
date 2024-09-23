@@ -21,8 +21,14 @@
             <button onclick="location.href='/dashboard/'" style="margin-top: 20px;">View Dashboard</button>
         </div>
 
+        <!-- Add a button to view the weekly summary with dynamic last week date -->
+        <div>
+            <button onclick="location.href='/weekly-summary'" style="margin-top: 20px;">{{ last_week }} Weekly Summary</button>
+        </div>
+
         <div id="responseMessage"></div>
     </div>
 
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
 </body>
+</html>

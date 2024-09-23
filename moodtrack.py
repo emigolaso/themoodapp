@@ -1,8 +1,11 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
-from utils.data_processing import process_data
-from utils.db_operations import insert_data_to_supabase
+import markdown  # Import markdown extension
+from utils.openai_utils import process_data
+from utils.supabase_utils import insert_data_to_supabase
+from utils.supabase_storage_utils import download_weekly_summary_from_supabase
 from supabase import create_client, Client
 import os
+from datetime import datetime, timezone
 from dash import Dash, dcc, html
 import plotly.express as px
 import pandas as pd
@@ -15,9 +18,17 @@ dash_app = Dash(__name__, server=app, url_base_pathname='/dashboard/')
 
 # Route for the existing main page (index.html)
 @app.route('/')
-def home():
-    return render_template('index.html')
+# Making week of button dynamic 
+def index():
+    # Calculate the last full week's Monday
+    current_date = pd.to_datetime(datetime.today().date())
+    last_monday = current_date - pd.Timedelta(days=current_date.weekday() + 7)
+    last_monday_str = last_monday.strftime('%Y-%m-%d')
+    
+    # Pass the calculated date to the template
+    return render_template('index.html', last_week=last_monday_str)
 
+# Route for submitting moods
 @app.route('/submit_entry', methods=['POST'])
 def submit_entry():
     try:
@@ -38,6 +49,22 @@ def submit_entry():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'message': 'An error occurred'}), 500
+
+# Route for getting weekly summaries
+@app.route('/weekly-summary')
+def display_weekly_summary():
+    current_date = pd.to_datetime(datetime.today().date())
+    last_monday = current_date - pd.Timedelta(days=current_date.weekday() + 7)
+    last_monday_str = last_monday.strftime('%Y-%m-%d')
+    
+    # Download the file from Supabase 
+    weekly_summary_content = download_weekly_summary_from_supabase(last_monday_str)
+   
+    # Convert the weekly summary content from Markdown to HTML
+    weekly_summary_html = markdown.markdown(weekly_summary_content)
+    
+    return render_template('weekly_summary.html', summary=weekly_summary_html)
+
 
 # Setup the Dash app and plots
 SUPABASE_URL = os.getenv('SUPABASE_URL')

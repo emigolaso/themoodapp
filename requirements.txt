@@ -2,11 +2,13 @@ Flask==2.2.2
 gunicorn==20.1.0
 requests==2.25.1
 python-dotenv==1.0.0
+boto3==1.28.12
 supabase==2.7.4
 openai==0.27.0
 pytz==2023.3
 Werkzeug==2.2.2
 pandas==2.2.2
+markdown==3.7
 
 # Add these for Dash and Plotly
 dash==2.12.0
