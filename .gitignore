@@ -6,3 +6,6 @@ DTAppDev.ipynb
 
 #Ignore the data i uploaded for the dashboard
 Complete_Mood_Tracker_Data.xlsx
+
+#Ignore checkpoints
+**/.ipynb_checkpoints/
