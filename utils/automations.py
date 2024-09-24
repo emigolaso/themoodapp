@@ -13,7 +13,7 @@ def run_weekly_mood_summary():
     # Get current day of the week (0 = Monday)
     day_of_week = current_datetime.weekday()
     # Check if it's Monday and the time is between 12:00 AM and 12:10 AM
-    if day_of_week == 0 and current_datetime.time() >= pd.Timestamp('06:40:00').time()  and current_datetime.time()  <= pd.Timestamp('06:50:00').time():
+    if day_of_week == 0 and current_datetime.time() >= pd.Timestamp('06:49:00').time()  and current_datetime.time()  <= pd.Timestamp('07:01:00').time():
         # Step 1: Collect the weekly mood data from Supabase
         mood_data = weekly_mood_data()
     
