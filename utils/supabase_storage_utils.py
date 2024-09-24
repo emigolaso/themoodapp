@@ -1,5 +1,7 @@
 import requests
 import json
+import pandas as pd
+from datetime import datetime, timezone
 import re
 from dotenv import load_dotenv
 import boto3
@@ -24,7 +26,7 @@ SECRET_ACCESS_KEY = os.getenv('SECRET_ACCESS_KEY')
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
 
-def upload_mood_summary_to_supabase(date):
+def upload_mood_summary_to_supabase(fname):
     # Initialize boto3 S3 client with Supabase settings
     s3 = boto3.client(
         's3',
@@ -36,11 +38,11 @@ def upload_mood_summary_to_supabase(date):
     )
     
     # File path to upload (adjust as needed)
-    file_path = f'weeklysummary_{date}.txt'
+    file_path = fname
     
     # Upload file to the S3 bucket
     bucket_name = S3_BUCKET  # Your Supabase bucket name
-    object_name = f'weeklysummary_{date}.txt'  # The path inside the bucket where the file will go
+    object_name = fname  # The path inside the bucket where the file will go
     
     try:
         # Open the file and upload it to Supabase Storage
@@ -50,19 +52,36 @@ def upload_mood_summary_to_supabase(date):
     except Exception as e:
         print(f"Error uploading file: {e}")
 
-
-def download_weekly_summary_from_supabase(week_of):
+def download_summary_from_supabase(period):
     """
-    Download the weekly summary file from Supabase Storage.
-    
+    Download the daily or weekly summary file from Supabase Storage.
+
     Args:
-    - week_of: The week identifier for the file (e.g., '2024-09-18').
-    
+    - period: Can be 'daily' or 'weekly'.
+
     Returns:
     - The content of the file as a string.
     """
     try:
-        response = supabase.storage.from_(S3_BUCKET).download(f'weeklysummary_{week_of}.txt')
+        if period == 'weekly':
+            # Calculate the last Monday
+            current_date = pd.to_datetime(datetime.today().date())
+            last_monday = current_date - pd.Timedelta(days=current_date.weekday() + 7)
+            date_str = last_monday.strftime('%Y-%m-%d')
+            filename = f'weeklysummary_{date_str}.txt'
+        
+        elif period == 'daily':
+            # Calculate yesterday's date
+            current_date = pd.to_datetime(datetime.today().date())
+            start_of_last_day = (current_date - pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+            filename = f'dailysummary_{start_of_last_day}.txt'
+        
+        else:
+            print("Invalid period. Please use 'daily' or 'weekly'.")
+            return None
+        
+        # Download the file from Supabase storage
+        response = supabase.storage.from_(S3_BUCKET).download(filename)
         
         # Check if the response is successful and return the file content
         if response:
@@ -70,6 +89,7 @@ def download_weekly_summary_from_supabase(week_of):
         else:
             print("No content found in the file.")
             return None
+
     except Exception as e:
         print(f"Error downloading the file: {e}")
         return None

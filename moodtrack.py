@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 import markdown  # Import markdown extension
 from utils.openai_utils import process_data
 from utils.supabase_utils import insert_data_to_supabase
-from utils.supabase_storage_utils import download_weekly_summary_from_supabase
+from utils.supabase_storage_utils import download_summary_from_supabase
 from supabase import create_client, Client
 import os
 from datetime import datetime, timezone
@@ -25,8 +25,12 @@ def index():
     last_monday = current_date - pd.Timedelta(days=current_date.weekday() + 7)
     last_monday_str = last_monday.strftime('%Y-%m-%d')
     
+    # Calculate the last full day's date (yesterday)
+    last_day = current_date - pd.Timedelta(days=1)
+    last_day_str = last_day.strftime('%Y-%m-%d')
+    
     # Pass the calculated date to the template
-    return render_template('index.html', last_week=last_monday_str)
+    return render_template('index.html', last_week=last_monday_str, last_day=last_day_str)
 
 # Route for submitting moods
 @app.route('/submit_entry', methods=['POST'])
@@ -53,17 +57,24 @@ def submit_entry():
 # Route for getting weekly summaries
 @app.route('/weekly-summary')
 def display_weekly_summary():
-    current_date = pd.to_datetime(datetime.today().date())
-    last_monday = current_date - pd.Timedelta(days=current_date.weekday() + 7)
-    last_monday_str = last_monday.strftime('%Y-%m-%d')
-    
     # Download the file from Supabase 
-    weekly_summary_content = download_weekly_summary_from_supabase(last_monday_str)
+    weekly_summary_content = download_summary_from_supabase('weekly')
    
     # Convert the weekly summary content from Markdown to HTML
     weekly_summary_html = markdown.markdown(weekly_summary_content)
     
     return render_template('weekly_summary.html', summary=weekly_summary_html)
+
+
+@app.route('/daily-summary')
+def display_daily_summary():
+    # Download the daily summary file from Supabase
+    daily_summary_content = download_summary_from_supabase('daily')
+
+    # Convert the daily summary content from Markdown to HTML
+    daily_summary_html = markdown.markdown(daily_summary_content)
+
+    return render_template('daily_summary.html', summary=daily_summary_html)
 
 
 # Setup the Dash app and plots

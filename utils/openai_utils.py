@@ -58,7 +58,7 @@ def process_data(entry):
         print(f"Error: {response.status_code} - {response.text}")
         return None
 
-def weekly_mood_summary(weekly_mood_string):
+def mood_summary(mood_string, period):
     # Define the API endpoint for OpenAI
     url = 'https://api.openai.com/v1/chat/completions'
     
@@ -68,25 +68,26 @@ def weekly_mood_summary(weekly_mood_string):
         'Content-Type': 'application/json'
     }
     
+    # Set the token limit based on the period (weekly or daily)
+    max_tokens = 4095 if period == 'weekly' else 1000
     
-    instruction = f"""These are my moods for a given time period in CSV format: 
-    {weekly_mood_string}
-    
-    
+    # Instruction changes based on the period
+    instruction = f"""These are my moods for a given {period} time period in CSV format: 
+    {mood_string}
     
     What trends do you see? I'm interested in a deep, reflective, analysis.
     """
-        
+    
     # Define the data payload with the user's mood
     data = {
-        'model': 'gpt-4o',  # Or whichever model you're using
+        'model': 'gpt-4',  # Or whichever model you're using
         'messages': [
             {'role': 'system', 'content': 'You are an assistant that analyzes mood data and provides deep, reflective insights.'},
             {'role': 'user', 'content': instruction}
         ],
-        'max_tokens': 4095,  ##maybe make this vary between daily and weekly 
-        'temperature':1,
-        'top_p':1    # Adjust based on your needs
+        'max_tokens': max_tokens,  # Adjust tokens based on period
+        'temperature': 1,
+        'top_p': 1  # Adjust based on your needs
     }
     
     # Make the POST request to the OpenAI API
@@ -103,12 +104,6 @@ def weekly_mood_summary(weekly_mood_string):
         print(f"Error: {response.status_code} - {response.text}")
         return None
 
-
 # Example usage
-# if __name__ == "__main__":
-#     est_now = utc_to_est(datetime.now(timezone.utc)).strftime('%m/%d/%Y %H:%M')
-#     entry = "5.1 Sara isn't responding and that's deff turning down my mood.. smh"
-#     processed_data = process_data(entry)
-
-#     if processed_data:
-#         print("Processed Data: {0},{1}".format(est_now,processed_data))
+# weekly_summary = mood_summary(weekly_mood_string, 'weekly')
+# daily_summary = mood_summary(daily_mood_string, 'daily')

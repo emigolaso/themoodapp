@@ -1,34 +1,59 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mood Tracker</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .form-and-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .summary-buttons {
+            margin-top: 180px; /* Increase the margin to push the summary buttons further down */
+        }
+
+        button {
+            display: block;
+            margin-top: 20px;
+        }
+
+        textarea {
+            width: 70%; /* Ensures the text area takes up 70% of the container width */
+            height: 150px; /* Increases the height of the text box */
+            font-size: 16px;
+            padding: 5px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Mood Tracker</h1>
-        <form id="dataForm">
-            <label for="entry">Enter your mood data (e.g., '7 im feeling good today'):</label><br>
-            <textarea id="entry" name="entry" rows="4" style="width: 70%; height: 70px; font-size: 16px; padding: 5px;" wrap="soft"></textarea><br><br>
-            <button type="submit">Submit</button>
-        </form>
+        <div class="form-and-buttons">
+            <!-- Left: Form and other buttons -->
+            <div class="form-buttons">
+                <form id="dataForm">
+                    <label for="entry">Enter your mood data (e.g., '7 im feeling good today'):</label><br>
+                    <textarea id="entry" name="entry" rows="4" wrap="soft" style="width: 400px; height: 142px;"></textarea><br><br>
+                    <button type="submit">Submit</button>
+                </form>
 
-        <!-- Add a button to view the dashboard -->
-        <div>
-            <button onclick="location.href='/dashboard/'" style="margin-top: 20px;">View Dashboard</button>
-        </div>
+                <!-- View Dashboard Button -->
+                <button onclick="location.href='/dashboard/'">View Dashboard</button>
+            </div>
 
-        <!-- Add a button to view the weekly summary with dynamic last week date -->
-        <div>
-            <button onclick="location.href='/weekly-summary'" style="margin-top: 20px;">{{ last_week }} Weekly Summary</button>
+            <!-- Right: Summary buttons (aligned lower) -->
+            <div class="summary-buttons">
+                <button onclick="location.href='/weekly-summary'">2024-09-16 Weekly Summary</button>
+                <button onclick="location.href='/daily-summary'">2024-09-23 Daily Summary</button>
+            </div>
         </div>
 
         <div id="responseMessage"></div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-</body>
-</html>
+    <script src="/static/js/scripts.js"></script>
+
+</body></html>
