@@ -13,8 +13,8 @@ def run_mood_summary(period):
     day_of_week = current_datetime.weekday()
 
     if period == 'weekly':
-        # Check if it's Monday and between 12:00 AM and 12:21 AM ... adding 2 10 min blocks just in case
-        if day_of_week == 0 and current_datetime.time() >= pd.Timestamp('00:00:00').time() and current_datetime.time() <= pd.Timestamp('00:21:00').time():
+        # Check if it's Monday and between 12:00 AM and 12:21 AM ... adding 1 hour just in case... cause heroku is sketch 
+        if day_of_week == 0 and current_datetime.time() >= pd.Timestamp('00:00:00').time() and current_datetime.time() <= pd.Timestamp('01:21:00').time():
             # Step 1: Collect the weekly mood data from Supabase
             mood_data_csv = mood_data('weekly')
 
@@ -39,8 +39,8 @@ def run_mood_summary(period):
                 os.remove(temp_filename)
 
     elif period == 'daily':
-        # Check if it's Monday and between 12:00 AM and 12:21 AM ... adding 2 10 min blocks just in case
-        if current_datetime.time() >= pd.Timestamp('00:00:00').time() and current_datetime.time() <= pd.Timestamp('00:21:00').time():
+        # Check if it's Monday and between 12:00 AM and 12:21 AM ...adding 1 hour just in case... cause heroku is sketch
+        if current_datetime.time() >= pd.Timestamp('00:00:00').time() and current_datetime.time() <= pd.Timestamp('01:21:00').time():
 
             # Step 1: Collect the daily mood data from Supabase
             mood_data_csv = mood_data('daily')
