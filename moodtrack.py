@@ -97,14 +97,30 @@ max_mood = df['mood'].max()
 
 summary_stats = html.Div([
     html.H2('Summary Statistics'),
-    html.P(f'Mean Mood: {mean_mood}'),
+    html.P(f'Mean Mood: {mean_mood:.2f}'),
     html.P(f'Median Mood: {median_mood}'),
     html.P(f'Mode Mood: {mode_mood}'),
     html.P(f'Minimum Mood: {min_mood}'),
     html.P(f'Maximum Mood: {max_mood}')
 ])
 
-# Weekly Mood Plot
+### Monthly mood plot
+df['Month Start'] = df['date'].dt.to_period('M').dt.to_timestamp()
+monthly_mood_avg = df.groupby('Month Start')['mood'].mean().reset_index()
+fig_monthly_moods = px.bar(monthly_mood_avg, x='Month Start', y='mood', title='Average Mood by Month Start Date')
+
+# Prepare tick values and labels for months
+tick_vals = monthly_mood_avg['Month Start']
+tick_text = monthly_mood_avg['Month Start'].dt.strftime('%Y-%m')
+
+# Update x-axis to display only the monthly start dates
+fig_monthly_moods.update_xaxes(
+    tickmode='array',
+    tickvals=tick_vals,
+    ticktext=tick_text
+)
+
+### Weekly Mood Plot
 df['Week Start'] = (df['date'] - pd.to_timedelta(df['date'].dt.weekday, unit='d')).dt.date
 weekly_mood_avg = df.groupby('Week Start')['mood'].mean().reset_index()
 fig_weekly_moods = px.bar(weekly_mood_avg, x='Week Start', y='mood', title='Average Mood by Week')
@@ -120,33 +136,93 @@ fig_weekly_moods.update_xaxes(
     ticktext=tick_text
 )
 
-# Day of Week Plot
-df['Day'] = df['date'].dt.day_name()
+### Day of week plot
+df['day_only'] = df['date'].dt.date
+
+# Assuming df is your main DataFrame with 'date' and 'mood' columns
+df['Day'] = df['day_only'].apply(lambda x: x.strftime('%A'))  # Get day names from 'day_only'
+
+# 1. Calculate the long-run average mood by day of the week (averaging across all records for each day of the week)
 day_mood_avg = df.groupby('Day')['mood'].mean().reset_index()
+
+# Set the correct order for the days of the week
 day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 day_mood_avg['Day'] = pd.Categorical(day_mood_avg['Day'], categories=day_order, ordered=True)
-fig_day_moods = px.bar(day_mood_avg.sort_values('Day'), x='Day', y='mood', title='Average Mood by Day of Week')
 
-# Time of Day Plot
+# 2. Extract the most recent unique calendar days
+# Sort the DataFrame by date in descending order
+df_sorted = df.sort_values('date', ascending=False)
+
+# Group by day, then get the average mood for the most recent day for each day of the week
+latest_mood_per_day = df_sorted.groupby('Day').head(1)  # Get the most recent date for each day
+daily_mood_avg_recent = df[df['day_only'].isin(latest_mood_per_day['day_only'])].groupby(['Day'])['mood'].mean().reset_index()
+
+# 3. Merge the long-run daily averages with the most recent daily averages
+merged_data = pd.merge(day_mood_avg, daily_mood_avg_recent, on='Day', how='left', suffixes=('_weekly_avg', '_latest_avg'))
+
+# Ensure that the 'Day' column in the merged_data is categorized correctly
+merged_data['Day'] = pd.Categorical(merged_data['Day'], categories=day_order, ordered=True)
+merged_data = merged_data.sort_values('Day')
+
+# Add the date to the merged data for the latest mood (for hover info)
+merged_data = pd.merge(merged_data, latest_mood_per_day[['Day', 'day_only']], on='Day', how='left')
+
+# 4. Create the bar plot with both long-run daily average and recent mood averages
+fig_day_moods = px.bar(merged_data, 
+             x='Day', 
+             y=['mood_weekly_avg', 'mood_latest_avg'], 
+             barmode='group',
+             title='All-Time Daily Mood Average vs Most Recent Daily Mood by Day of Week')
+
+# Update the hover data to show both the mood and the date, capping the decimals at 2
+fig_day_moods.update_traces(
+    hovertemplate='<b>%{x}</b><br>All-Time Avg: %{customdata[0]:.2f}<br>Recent Avg: %{customdata[1]:.2f} (on %{customdata[2]})',
+    customdata=merged_data[['mood_weekly_avg', 'mood_latest_avg', 'day_only']]
+)
+
+### Time of Day Plot
 df['Time of Day'] = pd.cut(df['date'].dt.hour, bins=[0, 12, 18, 24], labels=['Morning', 'Afternoon', 'Evening'], right=False)
-time_mood_avg = df.groupby('Time of Day')['mood'].mean().reset_index()
-fig_time_moods = px.bar(time_mood_avg, x='Time of Day', y='mood', title='Average Mood by Time of Day')
 
-# Mood Fluctuations Plot
-df = df.sort_values(by='date')
-df['Mood Change'] = df['mood'].diff()
-df['Date'] = df['date'].dt.date
-daily_mood_fluctuations = df.groupby('Date')['Mood Change'].mean().reset_index()
-fig_fluctuations = px.line(daily_mood_fluctuations, x='Date', y='Mood Change', title='Average Mood Fluctuations')
+# 1. Calculate the long-run average mood for each time of day (all-time)
+time_mood_avg = df.groupby('Time of Day', observed=True)['mood'].mean().reset_index()
+
+# 2. Extract the most recent entries for each time of day
+# Sort by date first, then group by 'Time of Day' to get the most recent entries
+latest_mood_per_time = df.sort_values('date', ascending=False).groupby('Time of Day', observed=True).head(1).reset_index()
+
+# Calculate the average mood for the most recent entries
+latest_mood_avg_per_time = latest_mood_per_time.groupby('Time of Day', observed=True).agg({'mood': 'mean', 'date': 'max'}).reset_index()
+
+# 3. Merge the long-run averages with the latest averages
+merged_data = pd.merge(time_mood_avg, latest_mood_avg_per_time, on='Time of Day', how='left', suffixes=('_all_time_avg', '_latest_avg'))
+
+# Add the date to the latest average labels
+merged_data['latest_avg_with_date'] = merged_data.apply(lambda row: f"{row['mood_latest_avg']:.2f} (on {row['date'].strftime('%Y-%m-%d')})", axis=1)
+
+# 4. Create the bar plot comparing all-time and latest averages
+fig_time_moods = px.bar(
+    merged_data, 
+    x='Time of Day', 
+    y=['mood_all_time_avg', 'mood_latest_avg'], 
+    barmode='group',
+    title='All-Time vs Latest Mood by Time of Day'
+)
+
+# Update the hover data to show both all-time and latest averages with the date
+fig_time_moods.update_traces(
+    hovertemplate='<b>%{x}</b><br>All-Time Avg: %{customdata[0]:.2f}<br>Latest Avg: %{customdata[1]}',
+    customdata=merged_data[['mood_all_time_avg', 'latest_avg_with_date']]
+)
+
 
 # Setup Dash layout
 dash_app.layout = html.Div(children=[
     html.H1(children='Mood Tracking Dashboard'),
     summary_stats,
+    dcc.Graph(id='monthly-moods', figure=fig_monthly_moods),
     dcc.Graph(id='weekly-moods', figure=fig_weekly_moods),
     dcc.Graph(id='day-of-week-moods', figure=fig_day_moods),
     dcc.Graph(id='time-of-day-moods', figure=fig_time_moods),
-    dcc.Graph(id='mood-fluctuations', figure=fig_fluctuations),
 ])
 
 if __name__ == '__main__':
