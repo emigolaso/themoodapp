@@ -181,23 +181,29 @@ fig_day_moods.update_traces(
 )
 
 ### Time of Day Plot
+# Create a date-only column for merging purposes
+df['date_only'] = df['date'].dt.date
+
+# Create 'Time of Day' categories
 df['Time of Day'] = pd.cut(df['date'].dt.hour, bins=[0, 12, 18, 24], labels=['Morning', 'Afternoon', 'Evening'], right=False)
 
-# 1. Calculate the long-run average mood for each time of day (all-time)
+# 1. Calculate the all-time average mood for each time of day
 time_mood_avg = df.groupby('Time of Day', observed=True)['mood'].mean().reset_index()
 
-# 2. Extract the most recent entries for each time of day
-# Sort by date first, then group by 'Time of Day' to get the most recent entries
-latest_mood_per_time = df.sort_values('date', ascending=False).groupby('Time of Day', observed=True).head(1).reset_index()
+# 2. Extract the latest dates for each 'Time of Day' based on the date-only column
+latest_dates = df.groupby('Time of Day', observed=True)['date_only'].max().reset_index()
 
-# Calculate the average mood for the most recent entries
-latest_mood_avg_per_time = latest_mood_per_time.groupby('Time of Day', observed=True).agg({'mood': 'mean', 'date': 'max'}).reset_index()
+# Merge this information back to the original DataFrame to filter for the latest dates for each 'Time of Day'
+latest_mood_per_time = pd.merge(df, latest_dates, left_on=['Time of Day', 'date_only'], right_on=['Time of Day', 'date_only'], how='inner')
 
-# 3. Merge the long-run averages with the latest averages
+# Calculate the average mood for the most recent entries for each 'Time of Day'
+latest_mood_avg_per_time = latest_mood_per_time.groupby('Time of Day', observed=True).agg({'mood': 'mean', 'date_only': 'max'}).reset_index()
+
+# 3. Merge the all-time averages with the latest averages
 merged_data = pd.merge(time_mood_avg, latest_mood_avg_per_time, on='Time of Day', how='left', suffixes=('_all_time_avg', '_latest_avg'))
 
 # Add the date to the latest average labels
-merged_data['latest_avg_with_date'] = merged_data.apply(lambda row: f"{row['mood_latest_avg']:.2f} (on {row['date'].strftime('%Y-%m-%d')})", axis=1)
+merged_data['latest_avg_with_date'] = merged_data.apply(lambda row: f"{row['mood_latest_avg']:.2f} (on {row['date_only']})", axis=1)
 
 # 4. Create the bar plot comparing all-time and latest averages
 fig_time_moods = px.bar(
