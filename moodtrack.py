@@ -36,10 +36,15 @@ def index():
 @app.route('/submit_entry', methods=['POST'])
 def submit_entry():
     try:
-        entry = request.json.get('entry')
+        data = request.json
+        entry = data.get('entry')
+        tzone = data.get('timezone')
+        
         if not entry:
             return jsonify({'message': 'No entry provided'}), 400 
-        
+
+        print(f"Received Timezone: {tzone}")
+
         formatted_data = process_data(entry)
         if not formatted_data:
             return jsonify({'message': 'Failed to format data with ChatGPT.'}), 500
@@ -54,6 +59,8 @@ def submit_entry():
         print(f"Error: {e}")
         return jsonify({'message': 'An error occurred'}), 500
 
+
+    
 # Route for getting weekly summaries
 @app.route('/weekly-summary')
 def display_weekly_summary():
