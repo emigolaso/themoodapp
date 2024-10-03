@@ -45,7 +45,7 @@ def submit_entry():
 
         print(f"Received Timezone: {tzone}")
 
-        formatted_data = process_data(entry)
+        formatted_data = process_data(entry,tzone)
         if not formatted_data:
             return jsonify({'message': 'Failed to format data with ChatGPT.'}), 500
             
@@ -90,7 +90,7 @@ SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')
 SUPABASE_DB = os.getenv('SUPABASE_DB')
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
-response = supabase.table(f'{SUPABASE_DB}').select("*").execute()
+response = supabase.table(f'{SUPABASE_DB}').select('id, date, mood, description').execute()
 data = response.data
 df = pd.DataFrame(data)
 df['date'] = pd.to_datetime(df['date'])

@@ -29,7 +29,8 @@ def insert_data_to_supabase(data_string):
     data = {
         "date": re.findall("^[^,]+",data_string)[0],
         "mood": re.findall(",([^,]+),",data_string)[0],
-        "description": re.findall('[^,]+,[^,]+,"(.*)"',data_string)[0]
+        "description": re.findall('[^,]+,[^,]+,"(.*)"',data_string)[0],
+        "timezone": re.findall(',([^,]+)$', data_string)[0]
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
@@ -46,7 +47,7 @@ def mood_data(period):
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
     
     # Fetch data from the "mood_entries" table
-    response = supabase.table('moodcheck-emi').select("*").execute()
+    response = supabase.table(SUPABASE_DB).select('id, date, mood, description').execute()
     
     # Extract the data
     data = response.data

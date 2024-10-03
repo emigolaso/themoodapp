@@ -11,7 +11,7 @@ load_dotenv()
 # Your OpenAI API key
 API_KEY =  os.getenv('OPENAI_API_KEY')
 
-def process_data(entry):
+def process_data(entry, user_timezone):
     # Define the API endpoint for OpenAI
     url = 'https://api.openai.com/v1/chat/completions'
     
@@ -51,8 +51,20 @@ def process_data(entry):
         # Parse the response JSON
         result = response.json()
         processed_content = result['choices'][0]['message']['content']
-        est_now = datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).strftime('%m/%d/%Y %H:%M')
-        return "{0},{1}".format(est_now,processed_content)
+
+        # Use the user's timezone to get the current time
+        try:
+            user_tz = pytz.timezone(user_timezone)
+            current_time = datetime.now(timezone.utc).astimezone(user_tz).strftime('%m/%d/%Y %H:%M')
+        except Exception as e:
+            # Log the error for debugging
+            print(f"An error occurred: {e}")
+            #Fallback is to just set it timezone as UTC 
+            user_tz = pytz.timezone('UTC')
+            current_time = datetime.now(timezone.utc).astimezone(user_tz).strftime('%m/%d/%Y %H:%M')
+            
+        return "{0},{1},{2}".format(current_time,processed_content,user_tz)
+        
     else:
         # Handle errors
         print(f"Error: {response.status_code} - {response.text}")
