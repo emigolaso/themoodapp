@@ -72,7 +72,7 @@ def mood_data(period):
         end_of_last_full_week = (start_of_last_full_week + pd.Timedelta(days=6)).replace(hour=23, minute=59, second=59)
         
         # Filter the dataframe to get the dates within the last full week
-        mood_data = df[(df['date'] >= pd.to_datetime(start_of_last_full_week)) & (df['date'] <= pd.to_datetime(end_of_last_full_week))].iloc[:,:3]
+        mood_data = df[(df['date'] >= pd.to_datetime(start_of_last_full_week)) & (df['date'] <= pd.to_datetime(end_of_last_full_week))].iloc[:,1:]
 
     elif period == 'daily':
         # Find the most recent full day (yesterday)
@@ -82,7 +82,7 @@ def mood_data(period):
         end_of_last_day = start_of_last_day.replace(hour=23, minute=59, second=59)
         
         # Filter the dataframe to get the dates within the last full day
-        mood_data = df[(df['date'] >= pd.to_datetime(start_of_last_day)) & (df['date'] <= pd.to_datetime(end_of_last_day))].iloc[:,:3]
+        mood_data = df[(df['date'] >= pd.to_datetime(start_of_last_day)) & (df['date'] <= pd.to_datetime(end_of_last_day))].iloc[:,1:]
 
     # Convert the DataFrame to a CSV string
     csv_string = mood_data.to_csv(index=False)
