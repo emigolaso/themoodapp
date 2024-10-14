@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime, timezone
 import json
 import re
+import pytz
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import os
@@ -16,8 +17,7 @@ SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')
 SUPABASE_DB = os.getenv('SUPABASE_DB')
 
 # Function to insert data into Supabase
-def insert_data_to_supabase(data_string):
-    dsl = re.split(",",data_string)
+def insert_data_to_supabase(data):
     url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_DB}"
     
     headers = {
@@ -26,14 +26,28 @@ def insert_data_to_supabase(data_string):
         "Content-Type": "application/json"
     }
 
-    data = {
-        "date": re.findall("^[^,]+",data_string)[0],
-        "mood": re.findall(",([^,]+),",data_string)[0],
-        "description": re.findall('[^,]+,[^,]+,"(.*)"',data_string)[0],
-        "timezone": re.findall(',([^,]+)$', data_string)[0]
+    # Use the user's timezone to get the current time
+    user_timezone = data.get('timezone')
+    try:
+        user_tz = pytz.timezone(user_timezone)
+        current_time = datetime.now(timezone.utc).astimezone(user_tz).strftime('%m/%d/%Y %H:%M')
+    except Exception as e:
+        # Log the error for debugging
+        print(f"An error occurred: {e}")
+        # Fallback to just set timezone as UTC 
+        user_tz = pytz.timezone('UTC')
+        current_time = datetime.now(timezone.utc).astimezone(user_tz).strftime('%m/%d/%Y %H:%M')
+
+    # Prepare data for insertion
+    data_to_insert = {
+        "date": current_time,
+        "mood": data['mood'],
+        "description": data['description'],
+        "timezone": data['timezone']
     }
 
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+    # Insert into Supabase
+    response = requests.post(url, headers=headers, data=json.dumps(data_to_insert))
 
     if response.status_code == 201:
         print("Data inserted successfully!")

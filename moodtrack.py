@@ -37,18 +37,22 @@ def index():
 def submit_entry():
     try:
         data = request.json
-        entry = data.get('entry')
+        mood = data.get('mood')  # Capturing the mood from the slider
+        description = data.get('description')  # Capturing the description
         tzone = data.get('timezone')
         
-        if not entry:
-            return jsonify({'message': 'No entry provided'}), 400 
+        if not mood or not description:
+            return jsonify({'message': 'Mood and description must be provided'}), 400 
 
         print(f"Received Timezone: {tzone}")
 
-        formatted_data = process_data(entry,tzone)
-        if not formatted_data:
-            return jsonify({'message': 'Failed to format data with ChatGPT.'}), 500
-            
+        # Combine the mood and description into a formatted structure (if necessary for DB storage)
+        formatted_data = {
+            'mood': mood,
+            'description': description,
+            'timezone': tzone
+        }
+
         success = insert_data_to_supabase(formatted_data)
         if not success:
             return jsonify({'message': 'Failed to insert data into Supabase.'}), 500

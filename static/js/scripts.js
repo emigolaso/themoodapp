@@ -1,7 +1,8 @@
 document.getElementById('dataForm').addEventListener('submit', async function(event) {
     event.preventDefault(); // Prevent the default form submission
 
-    const entry = document.getElementById('entry').value;
+    const mood = document.getElementById('mood').value;  // Get the mood from the slider
+    const description = document.getElementById('description').value;  // Get the description from textarea
     let timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Fallback to "UTC" if timezone is not captured
@@ -20,7 +21,7 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ entry: entry, timezone: timezone })
+            body: JSON.stringify({ mood: mood, description: description, timezone: timezone })
         });
 
         const result = await response.json();
@@ -28,9 +29,10 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
         // Display the response message
         document.getElementById('responseMessage').textContent = result.message;
 
-        // Clear the text area if submission was successful
+        // Clear the textarea and reset slider if submission was successful
         if (result.message === 'Data inserted successfully!') {
-            document.getElementById('entry').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('mood').value = 5.0;  // Reset slider to midpoint
         }
     } catch (error) {
         console.error('Error:', error);

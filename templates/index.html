@@ -13,8 +13,8 @@
         }
 
         .summary-buttons {
-            margin-left: -200px; /* Control the distance between the form and the summary buttons */
-            margin-top: 180px; /* Adjust the vertical alignment */
+            margin-left: -150px; /* Control the distance between the form and the summary buttons */
+            margin-top: 235px; /* Adjust the vertical alignment */
         }
 
         button {
@@ -32,13 +32,20 @@
 </head>
 <body>
     <div class="container">
-        <h1>Mood Tracker</h1>
+        <h1>MoodCheck</h1>
         <div class="form-and-buttons">
             <!-- Left: Form and other buttons -->
             <div class="form-buttons">
                 <form id="dataForm">
-                    <label for="entry">Enter your mood data (e.g., '7 im feeling good today'):</label><br>
-                    <textarea id="entry" name="entry" rows="4" wrap="soft" style="width: 300; height: 142px;"></textarea><br><br>
+                    <label for="mood">How ya feelin'? (1.0 to 10.0):</label><br>
+                    <!-- Mood Slider -->
+                    <input type="range" id="mood" name="mood" min="1.0" max="10.0" step="0.1" value="5.0" oninput="moodOutput.value = mood.value">
+                    <output id="moodOutput">5.0</output><br><br>
+
+                    <label for="description">Why? (e.g Just woke up, Idk, etc.):</label><br>
+                    <!-- Mood Description -->
+                    <textarea id="description" name="description" rows="4" wrap="soft" maxlength="200" style="width: 300px; height: 142px;"></textarea><br><br>
+                    
                     <button type="submit">Submit</button>
                 </form>
 
