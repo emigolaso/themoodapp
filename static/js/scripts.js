@@ -1,7 +1,8 @@
 document.getElementById('dataForm').addEventListener('submit', async function(event) {
     event.preventDefault(); // Prevent the default form submission
 
-    const mood = document.getElementById('mood').value;  // Get the mood from the slider
+    const moodSlider = document.getElementById('mood');
+    const mood = moodSlider.value;  // Get the mood from the slider
     const description = document.getElementById('description').value;  // Get the description from textarea
     let timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -31,8 +32,9 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
 
         // Clear the textarea and reset slider if submission was successful
         if (result.message === 'Data inserted successfully!') {
-            document.getElementById('description').value = '';
-            document.getElementById('mood').value = 5.0;  // Reset slider to midpoint
+            document.getElementById('description').value = ''; // Clear the text area
+            moodSlider.value = 5.0; // Reset slider to 5
+            document.getElementById('moodOutput').value = 5.0;  // Reset the displayed number to 5
         }
     } catch (error) {
         console.error('Error:', error);
