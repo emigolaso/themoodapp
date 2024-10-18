@@ -51,7 +51,7 @@ body {
 /* Media query for smaller screens (mobile) */
 @media screen and (max-width: 600px) {
     .logout-button {
-        top: 20px;
+        top: 30px;
         right: 10px;  /* Adjust the right position for smaller screens */
         font-size: 12px;  /* Make the button a little smaller */
         padding: 5px 10px;  /* Adjust the padding for smaller screens */
