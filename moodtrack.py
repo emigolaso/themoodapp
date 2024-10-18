@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for, flash
+from functools import wraps
 import markdown  # Import markdown extension
 from utils.openai_utils import process_data
 from utils.supabase_utils import insert_data_to_supabase
@@ -9,17 +10,128 @@ from datetime import datetime, timezone
 from dash import Dash, dcc, html
 import plotly.express as px
 import pandas as pd
+import time
+
+# Initialize SUPABASE for Auth and Setup the Dash app and plots
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')
+SUPABASE_DB = os.getenv('SUPABASE_DB')
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
 # Initialize Flask app
 app = Flask(__name__)
+app.secret_key = os.urandom(24)  # This generates a random secret key
 
 # Initialize Dash app within Flask
 dash_app = Dash(__name__, server=app, url_base_pathname='/dashboard/')
 
+
+# Create a login-required decorator
+def login_required(f):
+    @wraps(f)
+    def check_login(*args, **kwargs):
+        if 'user_email' not in session:  # Check if the user is logged in
+            flash('Please log in to access this page', 'error')
+            return redirect(url_for('login_page'))  # Redirect to login page if not logged in
+        return f(*args, **kwargs)
+    return check_login
+
+# Route to serve the login form
+@app.route('/login_page', methods=['GET'])
+def login_page():
+    # Check if signup was successful by checking the session variable
+    if session.pop('signup_success', None):  # Clear session after checking
+        flash('Signup successful, please login', 'success')  # Flash success message after signup
+
+    return render_template('login.html')  # Render the login page
+
+@app.route('/login', methods=['POST'])
+def login():
+    # Check if the request is JSON or form data
+    if request.content_type == 'application/json':
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+    else:
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+    if not email or not password:
+        flash('Email and password are required', 'error')  # Flash error message
+        return redirect(url_for('login_page'))
+
+    try:
+        # Perform authentication with the provided email and password
+        response = supabase.auth.sign_in_with_password({
+            'email': email,
+            'password': password,
+        })
+        # On successful login, store user info in session
+        session['user_email'] = email
+        return redirect(url_for('index'))  # Redirect to the index page
+    
+    except Exception as e:
+        flash('Invalid login credentials, try again', 'error')  # Flash error message
+        return redirect(url_for('login_page'))  # Redirect back to login page
+
+
+@app.route('/logout')
+def logout():
+    session.pop('user_email', None)  # Remove user data from the session
+    return redirect(url_for('login_page'))  # Redirect to the login page after logging out
+
+
+# Route to serve the signup form
+@app.route('/signup_page', methods=['GET'])
+def signup_page():
+    return render_template('signup.html')  # This will serve the signup form page
+
+
+# Sign up route
+@app.route('/signup', methods=['POST'])
+def signup():
+    # Check if the request is JSON or form data
+    if request.content_type == 'application/json':
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+    else:
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+    if not email or not password:
+        flash('Email and password are required', 'error')
+        return redirect(url_for('signup_page'))
+
+    try:
+        response = supabase.auth.sign_up({
+            'email': email,
+            'password': password,
+        })
+        
+        # Check if the user already exists by analyzing the response from Supabase
+        if 'error' in response:
+            flash(response['error']['message'], 'error')
+            return redirect(url_for('signup_page'))
+
+        # If signup is successful,set sucess session flag
+        session['signup_success'] = True  # Set session variable for success
+
+        # Simulate a delay for 3 seconds (you could also use time.sleep here)
+        return redirect(url_for('login_page'))
+
+    except Exception as e:
+        flash(str(e), 'error')  # Flash the error message
+        return redirect(url_for('signup_page'))
+
 # Route for the existing main page (index.html)
 @app.route('/')
-# Making week of button dynamic 
+@login_required
 def index():
+    # Check if the user is in the session
+    if 'user_email' not in session:
+        return redirect(url_for('login_page')) # Redirect to login page if not logged in
+
     # Calculate the last full week's Monday
     current_date = pd.to_datetime(datetime.today().date())
     last_monday = current_date - pd.Timedelta(days=current_date.weekday() + 7)
@@ -67,6 +179,7 @@ def submit_entry():
     
 # Route for getting weekly summaries
 @app.route('/weekly-summary')
+@login_required
 def display_weekly_summary():
     # Download the file from Supabase 
     weekly_summary_content = download_summary_from_supabase('weekly')
@@ -78,6 +191,7 @@ def display_weekly_summary():
 
 
 @app.route('/daily-summary')
+@login_required
 def display_daily_summary():
     # Download the daily summary file from Supabase
     daily_summary_content = download_summary_from_supabase('daily')
@@ -87,12 +201,6 @@ def display_daily_summary():
 
     return render_template('daily_summary.html', summary=daily_summary_html)
 
-
-# Setup the Dash app and plots
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')
-SUPABASE_DB = os.getenv('SUPABASE_DB')
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
 response = supabase.table(f'{SUPABASE_DB}').select('id, date, mood, description').execute()
 data = response.data

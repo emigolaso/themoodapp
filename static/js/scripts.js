@@ -1,3 +1,37 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const currentPath = window.location.pathname;
+
+    // Only check for redirection based on the session, not localStorage
+    if (currentPath !== '/login_page' && currentPath !== '/signup_page') {
+        // Let the backend (Flask) handle session verification, no need for token check here
+        const appContent = document.getElementById('appContent');
+        if (appContent) {
+            appContent.style.display = 'block';
+        }
+
+        // Handle logout inside the DOMContentLoaded handler
+        const logoutButton = document.getElementById('logoutButton');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', async function() {
+                console.log('Logout button clicked!');  // Debugging
+                try {
+                    const response = await fetch('/logout', { method: 'GET' });
+
+                    // Check if the response was redirected
+                    if (response.redirected) {
+                        // Redirect to the login page
+                        window.location.href = response.url;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        }
+    }
+});
+
+
+// Handle form submission
 document.getElementById('dataForm').addEventListener('submit', async function(event) {
     event.preventDefault(); // Prevent the default form submission
 
@@ -42,5 +76,69 @@ document.getElementById('dataForm').addEventListener('submit', async function(ev
     } finally {
         // Re-enable the submit button
         submitButton.disabled = false;
+    }
+});
+
+// Handle signup
+document.getElementById('signupForm').addEventListener('submit', async function (event) {
+    event.preventDefault();  // Prevent the default form submission
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const response = await fetch('/signup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: email, password: password })
+        });
+
+        const result = await response.json();
+        document.getElementById('signupResponse').textContent = result.message;
+
+        
+    } catch (error) {
+        document.getElementById('signupResponse').textContent = 'An error occurred.';
+        console.error(error);
+    }
+});
+
+// Handle login
+document.getElementById('loginForm').addEventListener('submit', async function (event) {
+    event.preventDefault(); // Prevent the default form submission
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: email, password: password })
+        });
+
+        // If login fails, display the error message
+        if (!response.ok) {
+            const result = await response.json();
+            document.getElementById('loginResponse').textContent = result.message;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loginResponse').textContent = 'An error occurred during login.';
+    }
+});
+
+
+// Handle logout
+document.getElementById('logoutButton').addEventListener('click', async function() {
+    try {
+        const response = await fetch('/logout', {method: 'GET'});
+
+    } catch (error) {
+        console.error('Error:', error);
     }
 });

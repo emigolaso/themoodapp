@@ -28,10 +28,27 @@
             font-size: 16px;
             padding: 5px;
         }
+        
+        /* CSS for the logout button */
+        .logout-button {
+            position: absolute;
+            top: 30px;
+            right: 660px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Logout Button -->
+    <button class="logout-button" id="logoutButton">Logout</button>
+
+    <!-- Container for the app content -->
+    <div class="container" id="appContent" style="display: none;"> <!-- Hidden until authentication is verified -->
         <h1>MoodCheck</h1>
         <div class="form-and-buttons">
             <!-- Left: Form and other buttons -->
