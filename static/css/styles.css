@@ -1,3 +1,4 @@
+/* General body and container styling */
 body {
     font-family: Arial, sans-serif;
     background-color: #f5f5f5;
@@ -11,29 +12,26 @@ body {
     background-color: #fff;
 }
 
-/* Error message styling */
+/* Error and Success messages */
 .error {
     color: red;
     font-weight: bold;
     margin-top: 20px;
 }
 
-/* Success message styling */
 .success {
     color: green;
     font-weight: bold;
     margin-top: 20px;
 }
 
-/* Style the signup link to look exactly like the login button */
+/* Style the buttons */
 .signup-button, button[type="submit"] {
     background-color: #f0f0f0;  /* Same background color as the Login button */
-    color: black;               /* Same text color as the Login button */
-    padding: 5px 15px;          /* Same padding */
-    text-decoration: none;      /* Remove underline */
-    border: 1px solid black;    /* Border to match the login button */
+    color: black;
+    padding: 5px 15px;
+    border: 1px solid black;   /* Border to match the login button */
     cursor: pointer;
-    display: inline-block;
     font-size: 14px;
 }
 
@@ -41,13 +39,21 @@ body {
 .logout-button {
     position: absolute;
     top: 35px;
-    right: 900px;
-    background-color: #f0f0f0;  /* Same background color as the Login button */
-    color: black;               /* Same text color as the Login button */
-    padding: 5px 15px;          /* Same padding */
-    text-decoration: none;      /* Remove underline */
-    border: 1px solid black;    /* Border to match the login button */
+    right: 900px;  /* Aligns to the right edge on larger screens */
+    background-color: #f0f0f0;
+    color: black;
+    padding: 5px 15px;
+    border: 1px solid black;
     cursor: pointer;
-    display: inline-block;
     font-size: 14px;
+}
+
+/* Media query for smaller screens (mobile) */
+@media screen and (max-width: 600px) {
+    .logout-button {
+        top: 20px;
+        right: 10px;  /* Adjust the right position for smaller screens */
+        font-size: 12px;  /* Make the button a little smaller */
+        padding: 5px 10px;  /* Adjust the padding for smaller screens */
+    }
 }
