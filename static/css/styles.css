@@ -36,3 +36,18 @@ body {
     display: inline-block;
     font-size: 14px;
 }
+
+/* CSS for the logout button */
+.logout-button {
+    position: absolute;
+    top: 35px;
+    right: 900px;
+    background-color: #f0f0f0;  /* Same background color as the Login button */
+    color: black;               /* Same text color as the Login button */
+    padding: 5px 15px;          /* Same padding */
+    text-decoration: none;      /* Remove underline */
+    border: 1px solid black;    /* Border to match the login button */
+    cursor: pointer;
+    display: inline-block;
+    font-size: 14px;
+}
