@@ -1,7 +1,20 @@
 import pandas as pd
 import plotly.express as px
 from dash import html
+from flask_caching import Cache
+import os
 
+# Initialize Cache with Redis directly in this file
+cache = Cache()
+
+def init_cache(app):
+    """Initialize Redis cache for the given Flask app."""
+    app.config['CACHE_TYPE'] = 'RedisCache'
+    app.config['CACHE_REDIS_URL'] = os.getenv('REDIS_URL')
+    cache.init_app(app)
+
+# Load data from Supabase with cache
+@cache.cached(timeout=86400, key_prefix='supabase_data_cache')  # Cache for 24 hours
 def load_data(supabase, SUPABASE_DB):
     """Function to load data from Supabase."""
     response = supabase.table(f'{SUPABASE_DB}').select('id, date, mood, description').execute()
@@ -9,6 +22,19 @@ def load_data(supabase, SUPABASE_DB):
     df = pd.DataFrame(data)
     df['date'] = pd.to_datetime(df['date'])
     return df
+
+# Generate all graphs and stats with cache
+@cache.cached(timeout=86400, key_prefix='graphs_cache')  # Cache for 24 hours
+def generate_all_graphs(df):
+    """Generate all graphs and summary statistics."""
+    summary_stats = generate_summary_statistics(df)
+    fig_monthly_moods = generate_monthly_mood_plot(df)
+    fig_weekly_moods = generate_weekly_mood_plot(df)
+    fig_day_moods = generate_day_of_week_plot(df)
+    fig_time_moods = generate_time_of_day_plot(df)
+
+    return summary_stats, fig_monthly_moods, fig_weekly_moods, fig_day_moods, fig_time_moods
+
 
 def generate_summary_statistics(df):
     """Generate summary statistics for the mood data."""

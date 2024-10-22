@@ -5,7 +5,7 @@ import markdown  # Import markdown extension
 from utils.openai_utils import process_data
 from utils.supabase_utils import insert_data_to_supabase
 from utils.supabase_storage_utils import download_summary_from_supabase
-from graphs import load_data, generate_summary_statistics, generate_monthly_mood_plot, generate_weekly_mood_plot, generate_day_of_week_plot, generate_time_of_day_plot
+from graphs import load_data, generate_all_graphs, init_cache
 from supabase import create_client, Client
 import os
 from datetime import datetime, timezone
@@ -14,19 +14,18 @@ import plotly.express as px
 import pandas as pd
 import time
 
+# Initialize Flask app
+app = Flask(__name__)
+app.secret_key = os.urandom(24)  # This generates a random secret key
+
+# Initialize Redis cache
+init_cache(app)
 
 # Initialize SUPABASE for Auth and Setup the Dash app and plots
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')
 SUPABASE_DB = os.getenv('SUPABASE_DB')
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
-
-# Initialize Flask app
-app = Flask(__name__)
-app.secret_key = os.urandom(24)  # This generates a random secret key
-
-# Initialize Dash app within Flask
-dash_app = Dash(__name__, server=app, url_base_pathname='/dashboard/')
 
 
 # Create a login-required decorator
@@ -204,15 +203,12 @@ def display_daily_summary():
 
     return render_template('daily_summary.html', summary=daily_summary_html)
 
-# Load the data for graph generation once at the start
-df = load_data(supabase, SUPABASE_DB)
+# Initialize Dash app within Flask
+dash_app = Dash(__name__, server=app, url_base_pathname='/dashboard/')
 
-# Generate all graphs and summary stats
-summary_stats = generate_summary_statistics(df)
-fig_monthly_moods = generate_monthly_mood_plot(df)
-fig_weekly_moods = generate_weekly_mood_plot(df)
-fig_day_moods = generate_day_of_week_plot(df)
-fig_time_moods = generate_time_of_day_plot(df)
+# Load the data for graph generation and generate cached graphs
+df = load_data(supabase, SUPABASE_DB)
+summary_stats, fig_monthly_moods, fig_weekly_moods, fig_day_moods, fig_time_moods = generate_all_graphs(df)
 
 # Setup Dash layout
 dash_app.layout = html.Div(children=[
