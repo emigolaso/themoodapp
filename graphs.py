@@ -10,7 +10,7 @@ cache = Cache()
 def init_cache(app):
     """Initialize Redis cache for the given Flask app."""
     app.config['CACHE_TYPE'] = 'RedisCache'
-    app.config['CACHE_REDIS_URL'] = os.getenv('REDIS_URL')
+    app.config['CACHE_REDIS_URL'] = os.getenv('REDISCLOUD_URL')
     cache.init_app(app)
 
 # Load data from Supabase with cache
