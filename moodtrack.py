@@ -170,6 +170,10 @@ def submit_entry():
         success = insert_data_to_supabase(formatted_data)
         if not success:
             return jsonify({'message': 'Failed to insert data into Supabase.'}), 500
+
+        from graphs import cache  # Import cache
+        cache.delete('supabase_data_cache')
+        cache.delete('graphs_cache')
         
         return jsonify({'message': 'Data inserted successfully!'})
     
@@ -206,19 +210,22 @@ def display_daily_summary():
 # Initialize Dash app within Flask
 dash_app = Dash(__name__, server=app, url_base_pathname='/dashboard/')
 
-# Load the data for graph generation and generate cached graphs
-df = load_data(supabase, SUPABASE_DB)
-summary_stats, fig_monthly_moods, fig_weekly_moods, fig_day_moods, fig_time_moods = generate_all_graphs(df)
+def generate_dashboard_layout():
+    # Load the data for graph generation and generate cached graphs
+    df = load_data(supabase, SUPABASE_DB)
+    summary_stats, fig_monthly_moods, fig_weekly_moods, fig_day_moods, fig_time_moods = generate_all_graphs(df)
+    
+    # Return the updated layout with the latest figures
+    return html.Div(children=[
+        html.H1(children='Mood Tracking Dashboard'),
+        summary_stats,
+        dcc.Graph(id='monthly-moods', figure=fig_monthly_moods),
+        dcc.Graph(id='weekly-moods', figure=fig_weekly_moods),
+        dcc.Graph(id='day-of-week-moods', figure=fig_day_moods),
+        dcc.Graph(id='time-of-day-moods', figure=fig_time_moods),
+    ])
 
-# Setup Dash layout
-dash_app.layout = html.Div(children=[
-    html.H1(children='Mood Tracking Dashboard'),
-    summary_stats,
-    dcc.Graph(id='monthly-moods', figure=fig_monthly_moods),
-    dcc.Graph(id='weekly-moods', figure=fig_weekly_moods),
-    dcc.Graph(id='day-of-week-moods', figure=fig_day_moods),
-    dcc.Graph(id='time-of-day-moods', figure=fig_time_moods),
-])
+dash_app.layout = generate_dashboard_layout
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5009))
