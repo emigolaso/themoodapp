@@ -54,11 +54,21 @@ def generate_summary_statistics(df):
     ])
     return summary_stats
 
-def generate_monthly_mood_plot(df):
-    """Generate the monthly mood plot."""
+def generate_monthly_mood_plot(df, alpha=0.3):
+    """Generate the monthly mood plot with EMA line."""
     df['Month Start'] = df['date'].dt.to_period('M').dt.to_timestamp()
     monthly_mood_avg = df.groupby('Month Start')['mood'].mean().reset_index()
+    
+    # Calculate the EMA
+    monthly_mood_avg['EMA'] = monthly_mood_avg['mood'].ewm(alpha=alpha).mean()
+    
+    # Create the bar plot for monthly average mood
     fig_monthly_moods = px.bar(monthly_mood_avg, x='Month Start', y='mood', title='Average Mood by Month Start Date')
+
+    # Add the EMA line with formatted label
+    fig_monthly_moods.add_scatter(x=monthly_mood_avg['Month Start'], y=monthly_mood_avg['EMA'],
+                                  mode='lines', name=f'Baseline Mood<br>(ema α={alpha})', line=dict(color='orange')
+    )
 
     # Prepare tick values and labels for months
     tick_vals = monthly_mood_avg['Month Start']
@@ -69,79 +79,153 @@ def generate_monthly_mood_plot(df):
         tickvals=tick_vals,
         ticktext=tick_text
     )
+    
     return fig_monthly_moods
 
+
+import pandas as pd
+import plotly.express as px
+
 def generate_weekly_mood_plot(df):
-    """Generate the weekly mood plot."""
+    """Generate the weekly mood plot with EMA overlay."""
+    # Define the start of each week
     df['Week Start'] = (df['date'] - pd.to_timedelta(df['date'].dt.weekday, unit='d')).dt.date
     weekly_mood_avg = df.groupby('Week Start')['mood'].mean().reset_index()
+    
+    # Calculate EMA on the weekly mood average
+    alpha = 0.3  # Controls the decay rate; adjust as needed
+    weekly_mood_avg['EMA'] = weekly_mood_avg['mood'].ewm(alpha=alpha).mean()
+    
+    # Create the bar chart for weekly mood averages
     fig_weekly_moods = px.bar(weekly_mood_avg, x='Week Start', y='mood', title='Average Mood by Week')
-
-    # Prepare tick values and labels
+    
+    # Add the EMA line
+    fig_weekly_moods.add_scatter(x=weekly_mood_avg['Week Start'], y=weekly_mood_avg['EMA'],
+                                 mode='lines', name=f'Baseline Mood<br> (ema α={alpha})', line=dict(color='orange'))
+    
+    # Customize tick values and labels
     tick_vals = weekly_mood_avg['Week Start']
     tick_text = weekly_mood_avg['Week Start']
-
     fig_weekly_moods.update_xaxes(
         tickmode='array',
         tickvals=tick_vals,
         ticktext=tick_text
     )
+
     return fig_weekly_moods
 
+
 def generate_day_of_week_plot(df):
-    """Generate the day of the week mood plot."""
+    """Generate the day of the week mood plot with conditional color-coding."""
     df['day_only'] = df['date'].dt.date
     df['Day'] = df['day_only'].apply(lambda x: x.strftime('%A'))
 
+    # Calculate long-run average mood by day
     day_mood_avg = df.groupby('Day')['mood'].mean().reset_index()
     day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     day_mood_avg['Day'] = pd.Categorical(day_mood_avg['Day'], categories=day_order, ordered=True)
 
+    # Calculate the most recent mood average by day
     df_sorted = df.sort_values('date', ascending=False)
     latest_mood_per_day = df_sorted.groupby('Day').head(1)
     daily_mood_avg_recent = df[df['day_only'].isin(latest_mood_per_day['day_only'])].groupby(['Day'])['mood'].mean().reset_index()
 
+    # Merge the long-run and recent averages
     merged_data = pd.merge(day_mood_avg, daily_mood_avg_recent, on='Day', how='left', suffixes=('_weekly_avg', '_latest_avg'))
     merged_data['Day'] = pd.Categorical(merged_data['Day'], categories=day_order, ordered=True)
     merged_data = merged_data.sort_values('Day')
     merged_data = pd.merge(merged_data, latest_mood_per_day[['Day', 'day_only']], on='Day', how='left')
 
-    fig_day_moods = px.bar(merged_data, 
-                 x='Day', 
-                 y=['mood_weekly_avg', 'mood_latest_avg'], 
-                 barmode='group',
-                 title='All-Time Daily Mood Average vs Most Recent Daily Mood by Day of Week')
+    # Define colors based on mood comparison
+    colors = ['#40cf8b' if latest >= weekly else '#ef553b' for weekly, latest in zip(merged_data['mood_weekly_avg'], merged_data['mood_latest_avg'])]
 
+    # Plot the bars
+    fig_day_moods = px.bar(
+        merged_data, 
+        x='Day', 
+        y=['mood_weekly_avg', 'mood_latest_avg'], 
+        barmode='group',
+        title='All-Time Daily Mood Average vs Most Recent Daily Mood by Day of Week',
+        color_discrete_sequence=['#636efa', colors]  # Purple tone for long-run, green/red for recent
+    )
+
+    # Rename the legend items for clarity
+    fig_day_moods.update_traces(
+        name="All-Time Average", 
+        selector=dict(name="mood_weekly_avg")
+    )
+    fig_day_moods.update_traces(
+        name="Recent Average", 
+        selector=dict(name="mood_latest_avg")
+    )
+
+    # Update the hover data and layout
     fig_day_moods.update_traces(
         hovertemplate='<b>%{x}</b><br>All-Time Avg: %{customdata[0]:.2f}<br>Recent Avg: %{customdata[1]:.2f} (on %{customdata[2]})',
-        customdata=merged_data[['mood_weekly_avg', 'mood_latest_avg', 'day_only']]
+        customdata=merged_data[['mood_weekly_avg', 'mood_latest_avg', 'day_only']],
     )
+    
     return fig_day_moods
 
 def generate_time_of_day_plot(df):
-    """Generate the time of day mood plot."""
+    """Generate the time of day mood plot with conditional color-coding."""
     df['date_only'] = df['date'].dt.date
-    df['Time of Day'] = pd.cut(df['date'].dt.hour, bins=[0, 12, 18, 24], labels=['Morning', 'Afternoon', 'Evening'], right=False)
-
+    
+    # Define time-of-day bins with labels showing times
+    bins = [0, 9, 12, 16, 20, 24]
+    labels = [
+        'Early Morning (4 AM - 9 AM)', 
+        'Late Morning (9 AM - 12 PM)', 
+        'Afternoon (12 PM - 4 PM)', 
+        'Evening (4 PM - 8 PM)', 
+        'Night (8 PM - 4 AM)'
+    ]
+    
+    # Categorize 'Time of Day' based on bins
+    df['Time of Day'] = pd.cut(df['date'].dt.hour, bins=bins, labels=labels, right=False)
+    
+    # Calculate all-time average mood per time of day
     time_mood_avg = df.groupby('Time of Day', observed=True)['mood'].mean().reset_index()
+    
+    # Get the latest dates for each 'Time of Day'
     latest_dates = df.groupby('Time of Day', observed=True)['date_only'].max().reset_index()
-
+    
+    # Filter to get the most recent mood entries for each time of day
     latest_mood_per_time = pd.merge(df, latest_dates, left_on=['Time of Day', 'date_only'], right_on=['Time of Day', 'date_only'], how='inner')
     latest_mood_avg_per_time = latest_mood_per_time.groupby('Time of Day', observed=True).agg({'mood': 'mean', 'date_only': 'max'}).reset_index()
 
+    # Merge all-time averages with the latest averages
     merged_data = pd.merge(time_mood_avg, latest_mood_avg_per_time, on='Time of Day', how='left', suffixes=('_all_time_avg', '_latest_avg'))
-    merged_data['latest_avg_with_date'] = merged_data.apply(lambda row: f"{row['mood_latest_avg']:.2f} (on {row['date_only']})", axis=1)
+    merged_data['Time of Day'] = pd.Categorical(merged_data['Time of Day'], categories=labels, ordered=True)
+    merged_data = merged_data.sort_values('Time of Day')
+    
+    # Define colors based on mood comparison
+    colors = ['#40cf8b' if latest >= all_time else '#ef553b' for all_time, latest in zip(merged_data['mood_all_time_avg'], merged_data['mood_latest_avg'])]
 
+    # Create the bar plot with conditional coloring
     fig_time_moods = px.bar(
         merged_data, 
         x='Time of Day', 
         y=['mood_all_time_avg', 'mood_latest_avg'], 
         barmode='group',
-        title='All-Time vs Latest Mood by Time of Day'
+        title='All-Time vs Latest Mood by Time of Day',
+        color_discrete_sequence=['#636efa', colors]  # Purple for long-run, green/red for recent
     )
 
+    # Rename the legend items for clarity
+    fig_time_moods.update_traces(
+        name="All-Time Average", 
+        selector=dict(name="mood_all_time_avg")
+    )
+    fig_time_moods.update_traces(
+        name="Recent Average", 
+        selector=dict(name="mood_latest_avg")
+    )
+
+    # Update hover info to show detailed data
     fig_time_moods.update_traces(
         hovertemplate='<b>%{x}</b><br>All-Time Avg: %{customdata[0]:.2f}<br>Latest Avg: %{customdata[1]}',
-        customdata=merged_data[['mood_all_time_avg', 'latest_avg_with_date']]
+        customdata=merged_data[['mood_all_time_avg', 'mood_latest_avg']]
     )
+    
     return fig_time_moods
