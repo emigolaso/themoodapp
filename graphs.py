@@ -222,10 +222,10 @@ def generate_time_of_day_plot(df):
         selector=dict(name="mood_latest_avg")
     )
 
-    # Update hover info to show detailed data
+    # Update hover info to show detailed data including entry date
     fig_time_moods.update_traces(
-        hovertemplate='<b>%{x}</b><br>All-Time Avg: %{customdata[0]:.2f}<br>Latest Avg: %{customdata[1]:.2f}',
-        customdata=merged_data[['mood_all_time_avg', 'mood_latest_avg']]
+        hovertemplate='<b>%{x}</b><br>All-Time Avg: %{customdata[0]:.2f}<br>Recent Avg: %{customdata[1]:.2f} (on %{customdata[2]})',
+        customdata=merged_data[['mood_all_time_avg', 'mood_latest_avg', 'date_only']]
     )
     
     return fig_time_moods
