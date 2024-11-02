@@ -43,7 +43,8 @@ def insert_data_to_supabase(data):
         "date": current_time,
         "mood": data['mood'],
         "description": data['description'],
-        "timezone": data['timezone']
+        "timezone": data['timezone'],
+        "user_uuid": data['user_uuid']
     }
 
     # Insert into Supabase

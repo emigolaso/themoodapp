@@ -68,8 +68,9 @@ def login():
             'email': email,
             'password': password,
         })
-        # On successful login, store user info in session
+        # On successful login, Capture UUID and store user info in session
         session['user_email'] = email
+        session['user_uuid'] = response.user.id  # Store the UUID
         return redirect(url_for('index'))  # Redirect to the index page
     
     except Exception as e:
@@ -80,6 +81,7 @@ def login():
 @app.route('/logout')
 def logout():
     session.pop('user_email', None)  # Remove user data from the session
+    session.pop('user_uuid', None)
     return redirect(url_for('login_page'))  # Redirect to the login page after logging out
 
 
@@ -160,11 +162,17 @@ def submit_entry():
 
         print(f"Received Timezone: {tzone}")
 
+        # Get user UUID from session
+        user_uuid = session.get('user_uuid')
+        if not user_uuid: return jsonify({'message': 'User not authenticated'}), 403
+
+
         # Combine the mood and description into a formatted structure (if necessary for DB storage)
         formatted_data = {
             'mood': mood,
             'description': description,
-            'timezone': tzone
+            'timezone': tzone,
+            'user_uuid': user_uuid
         }
 
         success = insert_data_to_supabase(formatted_data)
