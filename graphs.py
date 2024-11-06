@@ -1,6 +1,7 @@
 import pandas as pd
 import plotly.express as px
 from dash import html
+from flask import g, session
 from flask_caching import Cache
 import os
 
@@ -14,17 +15,20 @@ def init_cache(app):
     cache.init_app(app)
 
 # Load data from Supabase with cache
-@cache.cached(timeout=86400, key_prefix='supabase_data_cache')  # Cache for 24 hours
+@cache.cached(timeout=86400, key_prefix=lambda: f'supabase_data_cache_{g.user_uuid}')  # Cache for 24 hours per user
 def load_data(supabase, SUPABASE_DB):
-    """Function to load data from Supabase."""
-    response = supabase.table(f'{SUPABASE_DB}').select('id, date, mood, description').execute()
+    """Function to load data from Supabase for a specific user."""
+    if not g.user_uuid:
+        raise ValueError("User not authenticated")
+        
+    response = supabase.table(f'{SUPABASE_DB}').select('id, date, mood, description').eq('user_uuid', g.user_uuid).execute()
     data = response.data
     df = pd.DataFrame(data)
     df['date'] = pd.to_datetime(df['date'])
     return df
 
 # Generate all graphs and stats with cache
-@cache.cached(timeout=86400, key_prefix='graphs_cache')  # Cache for 24 hours
+@cache.cached(timeout=86400, key_prefix=lambda: f'graphs_cache_{g.user_uuid}')  # Cache for 24 hours per user
 def generate_all_graphs(df):
     """Generate all graphs and summary statistics."""
     summary_stats = generate_summary_statistics(df)

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for, flash
+from flask import Flask, request, jsonify, render_template, send_from_directory, g, session, redirect, url_for, flash
 from flask_caching import Cache
 from functools import wraps
 import markdown  # Import markdown extension
@@ -77,6 +77,11 @@ def login():
         flash('Invalid login credentials, try again', 'error')  # Flash error message
         return redirect(url_for('login_page'))  # Redirect back to login page
 
+
+# Before each request, set g.user_uuid (global variable for user_uuid)
+@app.before_request
+def before_request():
+    g.user_uuid = session.get("user_uuid")
 
 @app.route('/logout')
 def logout():
@@ -215,10 +220,29 @@ def display_daily_summary():
 
     return render_template('daily_summary.html', summary=daily_summary_html)
 
+
+# Dashboard routes
+@app.route('/dashboard/')
+@login_required
+def render_dashboard():
+    print("Inside render_dashboard")  # Debug line
+    user_uuid = session.get('user_uuid')
+    print(f"User UUID in session: {user_uuid}")  # Debug line
+    if not g.user_uuid:
+        return redirect(url_for('login_page'))  # Redirect to login if UUID is missing
+
+     # Call generate_dashboard_layout to get the actual layout and assign it to dash_app.layout
+    dash_app.layout = generate_dashboard_layout()
+    
+    # Directly return the layout rendered by Dash, without a redirect
+    return dash_app.index()  # Render the Dash app's layout directly
+
+
 # Initialize Dash app within Flask
 dash_app = Dash(__name__, server=app, url_base_pathname='/dashboard/')
 
 def generate_dashboard_layout():
+    print(f"Generating dashboard for user UUID: {g.user_uuid}")
     # Load the data for graph generation and generate cached graphs
     df = load_data(supabase, SUPABASE_DB)
     summary_stats, fig_monthly_moods, fig_weekly_moods, fig_day_moods, fig_time_moods = generate_all_graphs(df)
@@ -233,7 +257,7 @@ def generate_dashboard_layout():
         dcc.Graph(id='time-of-day-moods', figure=fig_time_moods),
     ])
 
-dash_app.layout = generate_dashboard_layout
+dash_app.layout =  html.Div("Loading...") 
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5009))
