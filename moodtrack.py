@@ -184,9 +184,10 @@ def submit_entry():
         if not success:
             return jsonify({'message': 'Failed to insert data into Supabase.'}), 500
 
+         # Clear cache specifically for this user's data
         from graphs import cache  # Import cache
-        cache.delete('supabase_data_cache')
-        cache.delete('graphs_cache')
+        cache.delete(f'supabase_data_cache_{user_uuid}')
+        cache.delete(f'graphs_cache_{user_uuid}')
         
         return jsonify({'message': 'Data inserted successfully!'})
     
