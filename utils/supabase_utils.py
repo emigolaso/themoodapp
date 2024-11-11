@@ -57,12 +57,12 @@ def insert_data_to_supabase(data):
         print(f"Failed to insert data: {response.status_code}, {response.text}")
         return False
 
-def mood_data(period):
+def mood_data(period, user_uuid):
     # Initialize the Supabase client
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
     
-    # Fetch data from the "mood_entries" table
-    response = supabase.table(SUPABASE_DB).select('id, date, mood, description').execute()
+    # Fetch data from the "mood_entries" table for the specific user
+    response = supabase.table(SUPABASE_DB).select('id, date, mood, description').eq('user_uuid', user_uuid).execute()
     
     # Extract the data
     data = response.data

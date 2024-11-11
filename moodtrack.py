@@ -202,8 +202,8 @@ def submit_entry():
 @login_required
 def display_weekly_summary():
     # Download the file from Supabase 
-    weekly_summary_content = download_summary_from_supabase('weekly')
-   
+    user_uuid = session.get('user_uuid')
+    weekly_summary_content = download_summary_from_supabase('weekly', user_uuid)
     # Convert the weekly summary content from Markdown to HTML
     weekly_summary_html = markdown.markdown(weekly_summary_content)
     
@@ -214,7 +214,8 @@ def display_weekly_summary():
 @login_required
 def display_daily_summary():
     # Download the daily summary file from Supabase
-    daily_summary_content = download_summary_from_supabase('daily')
+    user_uuid = session.get('user_uuid')
+    daily_summary_content = download_summary_from_supabase('daily', user_uuid)
 
     # Convert the daily summary content from Markdown to HTML
     daily_summary_html = markdown.markdown(daily_summary_content)
