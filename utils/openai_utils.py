@@ -4,12 +4,31 @@ from datetime import datetime, timezone
 import pytz
 from dotenv import load_dotenv
 import os
+import re
+import openai
+from langsmith import traceable
+from langsmith.wrappers import wrap_openai
+from utils.supabase_utils import fetch_mood_analysis_historical
 
-# Load environment variables from .env file
+#Load environment variables from .env file
 load_dotenv()
 
-# Your OpenAI API key
-API_KEY =  os.getenv('OPENAI_API_KEY')
+#Your OpenAI API key
+OPENAI_API_KEY =  os.getenv('OPENAI_API_KEY')
+
+#Prompt Loading
+with open('utils/prompts/instruction_drivers.txt', 'r', encoding='utf-8') as file:
+    instruction_drivers = file.read()
+# Load the instructions into the variable
+with open('utils/prompts/instruction_drivers_consolidate.txt', 'r', encoding='utf-8') as file:
+    instruction_drivers_consolidate = file.read()
+# Load the instructions into the variable
+with open('utils/prompts/instruction_drivers_refine.txt', 'r', encoding='utf-8') as file:
+    instruction_drivers_refine = file.read()
+
+
+#The Wrapper to Monitor LLM Calls on LangSmith
+openai_client = wrap_openai(openai.Client(api_key=OPENAI_API_KEY))
 
 def process_data(entry, user_timezone):
     # Define the API endpoint for OpenAI
@@ -17,7 +36,7 @@ def process_data(entry, user_timezone):
     
     # Prepare the headers with your API key
     headers = {
-        'Authorization': f'Bearer {API_KEY}',
+        'Authorization': f'Bearer {OPENAI_API_KEY}',
         'Content-Type': 'application/json'
     }
 
@@ -70,13 +89,90 @@ def process_data(entry, user_timezone):
         print(f"Error: {response.status_code} - {response.text}")
         return None
 
+@traceable
+def mood_analysis_pipeline(mood_data_csv,user_uuid):
+    ## CHAIN 1: Run Analysis X Times Based on Observations
+    ## Dynamically determine the number of runs: 3 * number of rows, capped at 10
+    num_runs = min(3 * mood_data_csv.strip().count('\n') , 10)
+    analysis_runs = ""
+    for i in range(num_runs):
+        messages = [
+            {"role": "user", "content": instruction_drivers.replace("%0%", mood_data_csv)}
+        ]
+        response = openai_client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=messages,
+            max_tokens=4095,
+            temperature=0.4,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0.2
+        )
+        # Append each processed response
+        analysis_runs += response.choices[0].message.content + "\n"
+
+    ## CHAIN 2: Consolidate Runs
+    consolidated_messages = [
+        {"role": "user", "content": instruction_drivers_consolidate.replace("%0%", analysis_runs)}
+    ]
+
+    response = openai_client.chat.completions.create(
+        model='gpt-4o-mini',
+        messages=consolidated_messages,
+        max_tokens=4095,
+        temperature=0.4,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0.2
+    )
+
+    consolidated_content = response.choices[0].message.content
+
+    #Extracting historicals 
+    manalysis_historical = fetch_mood_analysis_historical(user_uuid, period='all')
+   
+    # Convert to CSV string
+    manalysis_historical = manalysis_historical.to_csv(index=False)
+    
+    ## CHAIN 3: Refine and Incorporate Into Results
+    refined_messages = [
+        {"role": "user", "content": instruction_drivers_refine
+            .replace("%0%", consolidated_content)
+            .replace("%1%", manalysis_historical)}
+    ]
+
+    response = openai_client.chat.completions.create(
+        model='gpt-4o-mini',
+        messages=refined_messages,
+        max_tokens=4095,
+        temperature=0.4,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0.2
+    )
+
+    refined_content = response.choices[0].message.content
+
+    ## RESULTS POST-PROCESSING
+    match = re.search(r"```json\s*(\{[\s\S]*?\})\s*```", refined_content, re.DOTALL)
+
+    if match:
+        json_str = match.group(1).strip()
+        try:
+            # Parse the JSON string
+            parsed_json = json.loads(json_str)
+            return parsed_json
+            
+        except json.JSONDecodeError: pass
+
+
 def mood_summary(mood_string, period):
     # Define the API endpoint for OpenAI
     url = 'https://api.openai.com/v1/chat/completions'
     
     # Prepare the headers with your API key
     headers = {
-        'Authorization': f'Bearer {API_KEY}',
+        'Authorization': f'Bearer {OPENAI_API_KEY}',
         'Content-Type': 'application/json'
     }
     

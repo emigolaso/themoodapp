@@ -6,6 +6,7 @@ import re
 import pytz
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from langsmith import traceable
 import os
 
 # Load environment variables from .env file
@@ -15,8 +16,10 @@ load_dotenv()
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')
 SUPABASE_DB = os.getenv('SUPABASE_DB')
+SUPABASE_DB_MANALYSIS = os.getenv('SUPABASE_DB_MANALYSIS')
 
-# Function to insert data into Supabase
+#Function to insert data into Supabase mood logs table
+@traceable
 def insert_data_to_supabase(data):
     url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_DB}"
     
@@ -57,6 +60,45 @@ def insert_data_to_supabase(data):
         print(f"Failed to insert data: {response.status_code}, {response.text}")
         return False
 
+#Function to insert the mood analysis data into Supabase memory table
+@traceable
+def insert_manalysis_to_supabase(data, user_uuid):
+    
+    url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_DB_MANALYSIS}"
+    
+    headers = {
+        "apikey": SUPABASE_API_KEY,
+        "Authorization": f"Bearer {SUPABASE_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    for category, records in data.items():
+        record_date = data["date"]
+        if category == "date": continue  # Skip the date field
+        for record in records:
+            try:
+                data_to_insert = {
+                    "date": record_date,
+                    "category": category,
+                    "sub_category": record["sub_category"],
+                    "impact": record["impact"],
+                    "description": record["description"],
+                    "user_uuid": user_uuid
+                }
+                
+                #Insert into the database
+                response = requests.post(url, headers=headers, data=json.dumps(data_to_insert))
+                if response.status_code == 201:
+                    print(f"Inserted: {data_to_insert}")
+                else:
+                    print(f"Failed to insert: {response.status_code}, {response.text}")
+            except KeyError as  e:
+                print(f"Missing key {e} in record: {record}. Skipping.")
+
+
+
+#Function to extract mood entries from database
+@traceable
 def mood_data(period, user_uuid):
     # Initialize the Supabase client
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
@@ -103,6 +145,53 @@ def mood_data(period, user_uuid):
     csv_string = mood_data.to_csv(index=False)
     
     return csv_string
+
+
+# Function to extract mood analysis historical data from the database
+@traceable
+def fetch_mood_analysis_historical(user_uuid, period='all'):
+    # Initialize the Supabase client
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
+    
+    # Query the "mood_analysis" table for the user's historical data
+    response = supabase.table(SUPABASE_DB_MANALYSIS)\
+        .select('date, category, sub_category, impact, description')\
+        .eq('user_uuid', user_uuid)\
+        .execute()
+    
+    # Extract the data
+    data = response.data
+    
+    # Convert the data to a pandas DataFrame
+    df = pd.DataFrame(data)
+    
+    if df.empty:
+        print("No data found.")
+        return df
+
+    # Convert the 'date' column to datetime
+    df['date'] = pd.to_datetime(df['date']).dt.normalize()
+
+    if period == 'daily':
+        # Filter the DataFrame for the previous day
+        yesterday = pd.Timestamp.now().normalize() - pd.Timedelta(days=1)
+        df = df[df['date'] == yesterday]
+    
+    elif period == 'weekly':
+        # Find the start and end dates for the most recent full week (Monday to Sunday)
+        current_date = pd.Timestamp.now().normalize()
+        last_monday = current_date - pd.Timedelta(days=current_date.weekday())
+        start_of_last_full_week = last_monday - pd.Timedelta(weeks=1)
+        end_of_last_full_week = start_of_last_full_week + pd.Timedelta(days=6)
+        
+        # Filter the DataFrame for the last full week
+        df = df[(df['date'] >= start_of_last_full_week) & (df['date'] <= end_of_last_full_week)]
+    
+    # Sort the DataFrame by the 'date' column
+    df = df.sort_values(by='date').reset_index(drop=True)
+    
+    print(f"Number of historical rows fetched: {len(df)}")
+    return df
     
 # Example usage:
 # weekly_data = mood_data('weekly')

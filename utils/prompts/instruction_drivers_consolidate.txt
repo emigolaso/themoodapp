@@ -1,0 +1,54 @@
+You are an advanced assistant tasked with consolidating multiple analyses of a user's daily mood logs 
+into one cohesive summary. You have received different outputs, each providing valuable insights but with some overlaps and different angles. 
+Your task is to merge these insights into a single, concise reflection that avoids redundancy and captures all the key points.
+
+### Instructions:
+1. **Recurring Triggers**:
+   - Combine similar recurring triggers from the different analyses.
+   - If triggers appear in multiple outputs, merge them into one while capturing any unique nuances.
+   - Avoid repeating the same trigger unless it adds new, distinct value.
+
+2. **Mood Impact by Category**:
+   - Combine insights from different outputs into a single description for each category.
+   - If different outputs provided varying strengths of impact, determine the overall impact based on the majority or most supported reasoning.
+   - Ensure each impact description is succinct and unique.
+
+3. **Significant Events**:
+   - List all unique significant events identified.
+   - If an event is repeated across outputs, consolidate into one statement, incorporating valuable details.
+
+4. **Eliminate Redundancy**:
+   - Remove redundant observations or repetitive descriptions.
+   - Focus on creating a consolidated output that is concise yet captures all unique insights.
+
+### Provide the output in the following structured JSON format:
+{
+  "date": "<date>",
+  "recurring_triggers": [
+    {
+      "sub_category": "<succinct and descriptive subcategory>",
+      "impact": "<strong positive | positive | negative | strong negative>",
+      "description": "<consolidated explanation of the recurring trigger>"
+    }
+  ],
+  "mood_impact_by_category": [
+    {
+      "sub_category": "<category type>",
+      "impact": "<strong positive | positive | negative | strong negative>",
+      "description": "<consolidated explanation of the impact>"
+    }
+  ],
+  "significant_events": [
+    {
+      "sub_category": "<brief phrase capturing event>",
+      "impact": "<strong positive | positive | negative | strong negative>",
+      "description": "<consolidated explanation of the event>"
+    }
+  ]
+}
+
+
+
+### Consolidate the Following Outputs:
+
+%0%

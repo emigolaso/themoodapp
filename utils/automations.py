@@ -1,14 +1,15 @@
+import re
+import json
 import pandas as pd
 from datetime import datetime
 import pytz
 import os
 import sys
-from supabase_storage_utils import upload_mood_summary_to_supabase
-from openai_utils import mood_summary
+from supabase_storage_utils import upload_mood_summary_to_supabase, insert_manalysis_to_supabase
+from openai_utils import mood_summary, mood_analysis_pipeline
 from supabase_utils import mood_data
 from supabase import create_client, Client
 from dotenv import load_dotenv
-import os
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,8 +18,8 @@ load_dotenv()
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')
 SUPABASE_DB = os.getenv('SUPABASE_DB')
+SUPABASE_DB_MANALYSIS = os.getenv('SUPABASE_DB_MANALYSIS')
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
-
 
 def run_mood_summary(period):
     # Get list of all unique user UUIDs
@@ -42,13 +43,11 @@ def run_mood_summary(period):
     
                 # Step 4: Save the summary to a temporary file, Upload the file to Supabase storage
                 temp_filename = f'weeklysummary_{user_uuid}_{last_monday_str}.txt'
-                save_and_upload_summary(temp_filename, mood_summary_text,user_uuid)
+                save_and_upload_summary(temp_filename, mood_summary_text, user_uuid)
 
-    
         elif period == 'daily':
-            # Check if it's Monday and between 12:00 AM and 12:21 AM ...adding 1 hour just in case... cause heroku is sketch
+            # Check if it's between 12:00 AM and 12:21 AM
             if current_datetime.time() >= pd.Timestamp('00:00:00').time() and current_datetime.time() <= pd.Timestamp('01:21:00').time():
-    
                 # Step 1: Collect the daily mood data from Supabase
                 mood_data_csv = mood_data('daily', user_uuid=user_uuid)
         
@@ -58,9 +57,27 @@ def run_mood_summary(period):
                 # Step 3: Get the date for yesterday
                 start_of_last_day = (current_datetime - pd.Timedelta(days=1)).strftime('%Y-%m-%d')
         
-                 # Step 4: Save the summary to a temporary file, Upload the file to Supabase storage
+                # Step 4: Save the summary to a temporary file, Upload the file to Supabase storage
                 temp_filename = f'dailysummary_{user_uuid}_{start_of_last_day}.txt'
-                save_and_upload_summary(temp_filename, mood_summary_text,user_uuid)
+                save_and_upload_summary(temp_filename, mood_summary_text, user_uuid)
+
+                # Step 5: Run mood analysis pipeline and insert analysis results
+                run_mood_analysis_and_insert(user_uuid)
+
+
+def run_mood_analysis_and_insert(user_uuid):
+    # Collect daily mood data
+    mood_data_csv = mood_data('daily', user_uuid)
+    if mood_data_csv.empty:
+        print(f"No mood data found for user: {user_uuid}")
+        return
+
+    # Run mood analysis pipeline
+    mood_analysis_json = mood_analysis_pipeline(mood_data_csv, user_uuid)
+
+    # Insert mood analysis results into Supabase
+    if mood_analysis_json:
+        insert_manalysis_to_supabase(mood_analysis_json, user_uuid)
 
 
 def get_all_user_uuids():
@@ -69,11 +86,13 @@ def get_all_user_uuids():
     user_uuids = {record['user_uuid'] for record in response.data}
     return user_uuids
 
-def save_and_upload_summary(filename, content,user_uuid):
+
+def save_and_upload_summary(filename, content, user_uuid):
     with open(filename, 'w') as file:
         file.write(content)
-    upload_mood_summary_to_supabase(filename,user_uuid)
+    upload_mood_summary_to_supabase(filename, user_uuid)
     os.remove(filename)  # Clean up local file after upload
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
