@@ -68,9 +68,6 @@ def run_mood_summary(period):
 def run_mood_analysis_and_insert(user_uuid):
     # Collect daily mood data
     mood_data_csv = mood_data('daily', user_uuid)
-    if mood_data_csv.empty:
-        print(f"No mood data found for user: {user_uuid}")
-        return
 
     # Run mood analysis pipeline
     mood_analysis_json = mood_analysis_pipeline(mood_data_csv, user_uuid)
