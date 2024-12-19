@@ -5,9 +5,9 @@ from datetime import datetime
 import pytz
 import os
 import sys
-from supabase_storage_utils import upload_mood_summary_to_supabase, insert_manalysis_to_supabase
+from supabase_storage_utils import upload_mood_summary_to_supabase
 from openai_utils import mood_summary, mood_analysis_pipeline
-from supabase_utils import mood_data
+from supabase_utils import mood_data, insert_manalysis_to_supabase
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
