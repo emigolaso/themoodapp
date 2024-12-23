@@ -45,6 +45,10 @@ def run_mood_summary(period):
                 temp_filename = f'weeklysummary_{user_uuid}_{last_monday_str}.txt'
                 save_and_upload_summary(temp_filename, mood_summary_text, user_uuid)
 
+                # Step 5: Perform weekly trimming for mood analysis table
+                weekly_manalysis_trimming(user_uuid)
+                
+
         elif period == 'daily':
             # Check if it's between 12:00 AM and 12:21 AM
             if current_datetime.time() >= pd.Timestamp('00:00:00').time() and current_datetime.time() <= pd.Timestamp('01:21:00').time():
