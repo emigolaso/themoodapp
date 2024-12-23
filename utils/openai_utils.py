@@ -16,7 +16,7 @@ load_dotenv()
 #Your OpenAI API key
 OPENAI_API_KEY =  os.getenv('OPENAI_API_KEY')
 
-#Prompt Loading
+#Prompt Loading, for Daily Mood Analysis
 with open('utils/prompts/instruction_drivers.txt', 'r', encoding='utf-8') as file:
     instruction_drivers = file.read()
 # Load the instructions into the variable
@@ -25,6 +25,17 @@ with open('utils/prompts/instruction_drivers_consolidate.txt', 'r', encoding='ut
 # Load the instructions into the variable
 with open('utils/prompts/instruction_drivers_refine.txt', 'r', encoding='utf-8') as file:
     instruction_drivers_refine = file.read()
+
+
+#Prompt Loading, for Weekly Mood Trimming
+with open('utils/prompts/instruction_weeklytrim5_rt.txt', 'r', encoding='utf-8') as file:
+    instruction_weeklytrim5_rt = file.read()
+with open('utils/prompts/instruction_weeklytrim5_mibc.txt', 'r', encoding='utf-8') as file:
+    instruction_weeklytrim5_mibc = file.read()
+with open('utils/prompts/instruction_weeklytrim5_se.txt', 'r', encoding='utf-8') as file:
+    instruction_weeklytrim5_se = file.read()
+with open('utils/prompts/instruction_weeklytrim5_consolidate.txt', 'r', encoding='utf-8') as file:
+    instruction_weeklytrim5_consolidate = file.read()
 
 
 #The Wrapper to Monitor LLM Calls on LangSmith
@@ -211,6 +222,123 @@ def mood_summary(mood_string, period):
         # Handle errors
         print(f"Error: {response.status_code} - {response.text}")
         return None
+
+
+@traceable
+def weekly_manalysis_trimming(user_uuid):
+    #This funciton is designed to be run on Monday Mornings.. Covering all prior analysis information from last monday - sunday 
+    #Pull the weekly historical data
+    df_md = fetch_mood_analysis_historical(user_uuid,'weekly')
+    
+    messages = [
+        {
+            "role": "user",
+            "content": instruction_weeklytrim5_rt
+            .replace("%0%", df_md[(df_md.category == 'recurring_triggers')].to_csv(index = False))
+        }
+    ]
+    
+    # Call the OpenAI API
+    response = openai_client.chat.completions.create(
+        model='gpt-4o-mini',  # Or whichever model you're using
+        messages=messages,
+        max_tokens=4095,
+        temperature=0.4,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0.2
+    )
+    
+    processed_content_rt = response.choices[0].message.content
+
+    messages = [
+        {
+            "role": "user",
+            "content": instruction_weeklytrim5_mibc
+            .replace("%0%", df_md[(df_md.category == 'mood_impact_by_category')].to_csv(index = False))
+        }
+    ]
+    
+    # Call the OpenAI API
+    response = openai_client.chat.completions.create(
+        model='gpt-4o-mini',  # Or whichever model you're using
+        messages=messages,
+        max_tokens=4095,
+        temperature=0.4,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0.2
+    )
+    
+    processed_content_mibc = response.choices[0].message.content
+
+    messages = [
+        {
+            "role": "user",
+            "content": instruction_weeklytrim5_se
+            .replace("%0%", df_md[(df_md.category == 'significant_events')].to_csv(index = False))
+        }
+    ]
+    
+    # Call the OpenAI API
+    response = openai_client.chat.completions.create(
+        model='gpt-4o-mini',  # Or whichever model you're using
+        messages=messages,
+        max_tokens=4095,
+        temperature=0.4,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0.2
+    )
+    
+    processed_content_se = response.choices[0].message.content
+
+
+    messages = [
+        {
+            "role": "user",
+            "content": instruction_weeklytrim5_consolidate
+            .replace("%0%", processed_content_rt)
+            .replace("%1%",processed_content_mibc)
+            .replace("%2%",processed_content_se)
+        }
+    ]
+    
+    # Call the OpenAI API
+    response = openai_client.chat.completions.create(
+        model='gpt-4o-mini',  # Or whichever model you're using
+        messages=messages,
+        max_tokens=4095,
+        temperature=0.4,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0.2
+    )
+    
+    processed_content_consolidate = response.choices[0].message.content
+
+    ##Deleting the input rows. Will switch out for consolidated rows 
+    delete_manalysis_rows_from_supabase(user_uuid, ids_to_delete = df_md['id'].tolist(), trim=False)
+
+    ##Insert output/consolidated descriptions 
+    ## RESULTS POST-PROCESSING
+    match = re.search(r"```json\s*(\{[\s\S]*?\})\s*```", processed_content_consolidate, re.DOTALL)
+    
+    if match:
+        json_str = match.group(1).strip()
+        try:
+            # Parse the JSON string
+            parsed_json = json.loads(json_str)
+    
+            #Insert mood analysis data to supabase 
+            insert_manalysis_to_supabase(parsed_json,user_uuid)
+    
+        except json.JSONDecodeError:
+            pass
+            
+    ##CHecking and tirmming if length > 100 
+    delete_manalysis_rows_from_supabase(user_uuid, ids_to_delete = None, trim=True)
+
 
 # Example usage
 # weekly_summary = mood_summary(weekly_mood_string, 'weekly')

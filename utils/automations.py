@@ -6,8 +6,8 @@ import pytz
 import os
 import sys
 from supabase_storage_utils import upload_mood_summary_to_supabase
-from openai_utils import mood_summary, mood_analysis_pipeline
-from supabase_utils import mood_data, insert_manalysis_to_supabase
+from openai_utils import mood_summary, mood_analysis_pipeline, weekly_manalysis_trimming
+from supabase_utils import mood_data, insert_manalysis_to_supabase, delete_manalysis_rows_from_supabase
 from supabase import create_client, Client
 from dotenv import load_dotenv
 

@@ -155,7 +155,7 @@ def fetch_mood_analysis_historical(user_uuid, period='all'):
     
     # Query the "mood_analysis" table for the user's historical data
     response = supabase.table(SUPABASE_DB_MANALYSIS)\
-        .select('date, category, sub_category, impact, description')\
+        .select('id','date, category, sub_category, impact, description')\
         .eq('user_uuid', user_uuid)\
         .execute()
     
@@ -192,7 +192,66 @@ def fetch_mood_analysis_historical(user_uuid, period='all'):
     
     print(f"Number of historical rows fetched: {len(df)}")
     return df
+
+# Delete mood analysis data from supabase
+@traceable
+def delete_manalysis_rows_from_supabase(user_uuid, ids_to_delete=None, trim=False):
     
+    # Delete rows by ID if provided
+    if ids_to_delete:
+        for id_to_delete in ids_to_delete:
+            response = supabase.table(SUPABASE_DB_MANALYSIS) \
+                .delete() \
+                .eq("id", id_to_delete) \
+                .eq("user_uuid", user_uuid) \
+                .execute()
+            
+            print(f"Deleted row ID: {id_to_delete}")
+
+
+    # Trim rows if requested
+    if trim:
+        # Fetch all rows for the user
+        response = supabase.table(SUPABASE_DB_MANALYSIS) \
+            .select("id, date, category, sub_category, impact, description") \
+            .eq('user_uuid', user_uuid) \
+            .execute()
+
+        df_md = pd.DataFrame(response.data)
+
+        # If there are no rows, nothing to trim
+        if df_md.empty:
+            print("No rows to trim.")
+            return
+
+        # Normalize and sort rows by date
+        df_md['date'] = pd.to_datetime(df_md['date']).dt.normalize()
+        df_md = df_md.sort_values(by='date').reset_index(drop=True)
+
+        # Check row count
+        row_count = len(df_md)
+        print(f"Current number of rows: {row_count}")
+
+        # If rows exceed 100, trim the earliest rows
+        if row_count > 100:
+            rows_to_delete = row_count - 100
+            ids_to_trim = df_md.head(rows_to_delete)['id'].tolist()
+
+            for id_to_trim in ids_to_trim:
+                response = supabase.table(SUPABASE_DB_MANALYSIS) \
+                    .delete() \
+                    .eq("id", id_to_trim) \
+                    .eq("user_uuid", user_uuid) \
+                    .execute()
+                
+                print(f"Trimmed row ID: {id_to_trim}")
+
+
+            print(f"Deleted {rows_to_delete} oldest rows to maintain 100 rows.")
+        else:
+            print("No trimming required. Row count is within limit.")
+
+
 # Example usage:
 # weekly_data = mood_data('weekly')
 # daily_data = mood_data('daily')
