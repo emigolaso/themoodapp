@@ -8,7 +8,7 @@ import re
 import openai
 from langsmith import traceable
 from langsmith.wrappers import wrap_openai
-from utils.supabase_utils import fetch_mood_analysis_historical
+from utils.supabase_utils import fetch_mood_analysis_historical, delete_manalysis_rows_from_supabase
 
 #Load environment variables from .env file
 load_dotenv()
