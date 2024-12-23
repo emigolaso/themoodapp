@@ -196,6 +196,8 @@ def fetch_mood_analysis_historical(user_uuid, period='all'):
 # Delete mood analysis data from supabase
 @traceable
 def delete_manalysis_rows_from_supabase(user_uuid, ids_to_delete=None, trim=False):
+    # Initialize the Supabase client
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
     
     # Delete rows by ID if provided
     if ids_to_delete:
