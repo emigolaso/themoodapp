@@ -15,6 +15,7 @@ from langsmith.wrappers import wrap_openai
 
 # Local module imports
 from utils.supabase_utils import (
+    mood_data,
     fetch_mood_analysis_historical,
     delete_manalysis_rows_from_supabase,
     insert_manalysis_to_supabase
