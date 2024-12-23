@@ -42,7 +42,7 @@ def run_mood_summary(period):
                 mood_data_csv = mood_data('weekly', user_uuid=user_uuid)
     
                 # Step 2: Summarize the weekly mood data using OpenAI
-                mood_summary_text = mood_summary(mood_data_csv, 'weekly')
+                mood_summary_text = mood_summary(user_uuid, 'weekly')
     
                 # Step 3: Get the last week's Monday as a string
                 last_monday_str = (current_datetime - pd.Timedelta(days=current_datetime.weekday() + 7)).strftime('%Y-%m-%d')
@@ -62,7 +62,7 @@ def run_mood_summary(period):
                 mood_data_csv = mood_data('daily', user_uuid=user_uuid)
         
                 # Step 2: Summarize the daily mood data using OpenAI
-                mood_summary_text = mood_summary(mood_data_csv, 'daily')
+                mood_summary_text = mood_summary(user_uuid, 'daily')
         
                 # Step 3: Get the date for yesterday
                 start_of_last_day = (current_datetime - pd.Timedelta(days=1)).strftime('%Y-%m-%d')
