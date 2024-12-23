@@ -194,7 +194,7 @@ def fetch_mood_analysis_historical(user_uuid, period='all'):
     # Sort the DataFrame by the 'date' column
     df = df.sort_values(by='date').reset_index(drop=True)
     
-    print(f"Number of historical rows fetched: {len(df)}")
+    print(f"Number of historical mood analysis entries fetched: {len(df)}")
     return df
 
 # Delete mood analysis data from supabase
