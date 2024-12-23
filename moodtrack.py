@@ -1,18 +1,26 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory, g, session, redirect, url_for, flash
-from flask_caching import Cache
+# Standard library imports
+import os
+import time
+from datetime import datetime, timezone
 from functools import wraps
-import markdown  # Import markdown extension
-from utils.openai_utils import process_data
+
+# Third-party library imports
+import pandas as pd
+import plotly.express as px
+import markdown
+from flask import (
+    Flask, request, jsonify, render_template,
+    send_from_directory, g, session, redirect, url_for, flash
+)
+from flask_caching import Cache
+from dash import Dash, dcc, html
+from supabase import create_client, Client
+
+# Local imports
 from utils.supabase_utils import insert_data_to_supabase
 from utils.supabase_storage_utils import download_summary_from_supabase
 from graphs import load_data, generate_all_graphs, init_cache
-from supabase import create_client, Client
-import os
-from datetime import datetime, timezone
-from dash import Dash, dcc, html
-import plotly.express as px
-import pandas as pd
-import time
+
 
 # Initialize Flask app
 app = Flask(__name__)

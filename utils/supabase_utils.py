@@ -1,13 +1,17 @@
-import requests
-import pandas as pd
-from datetime import datetime, timezone
-import json
+# Standard library imports
+import os
 import re
+import json
+from datetime import datetime, timezone
+
+# Third-party library imports
+import pandas as pd
 import pytz
+import requests
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from langsmith import traceable
-import os
+
 
 # Load environment variables from .env file
 load_dotenv()

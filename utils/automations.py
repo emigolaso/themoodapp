@@ -1,15 +1,21 @@
-import re
-import json
-import pandas as pd
-from datetime import datetime
-import pytz
+# Standard library imports
 import os
 import sys
+from datetime import datetime
+
+# Third-party library imports
+import pandas as pd
+import pytz
+import json
+import re
+from dotenv import load_dotenv
+from supabase import create_client, Client
+
+# Local imports
 from supabase_storage_utils import upload_mood_summary_to_supabase
 from openai_utils import mood_summary, mood_analysis_pipeline, weekly_manalysis_trimming
 from supabase_utils import mood_data, insert_manalysis_to_supabase, delete_manalysis_rows_from_supabase
-from supabase import create_client, Client
-from dotenv import load_dotenv
+
 
 # Load environment variables from .env file
 load_dotenv()
