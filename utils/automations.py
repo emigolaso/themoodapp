@@ -60,20 +60,19 @@ def run_mood_summary(period):
             if current_datetime.time() >= pd.Timestamp('00:00:00').time() and current_datetime.time() <= pd.Timestamp('01:21:00').time():
                 # Step 1: Collect the daily mood data from Supabase
                 mood_data_csv = mood_data('daily', user_uuid=user_uuid)
+
+                # Step 2: Run mood analysis pipeline and insert analysis results
+                run_mood_analysis_and_insert(user_uuid)
         
-                # Step 2: Summarize the daily mood data using OpenAI
+                # Step 3: Summarize the daily mood data using OpenAI
                 mood_summary_text = mood_summary(user_uuid, 'daily')
         
-                # Step 3: Get the date for yesterday
+                # Step 4: Get the date for yesterday
                 start_of_last_day = (current_datetime - pd.Timedelta(days=1)).strftime('%Y-%m-%d')
         
-                # Step 4: Save the summary to a temporary file, Upload the file to Supabase storage
+                # Step 5: Save the summary to a temporary file, Upload the file to Supabase storage
                 temp_filename = f'dailysummary_{user_uuid}_{start_of_last_day}.txt'
                 save_and_upload_summary(temp_filename, mood_summary_text, user_uuid)
-
-                # Step 5: Run mood analysis pipeline and insert analysis results
-                run_mood_analysis_and_insert(user_uuid)
-
 
 def run_mood_analysis_and_insert(user_uuid):
     # Collect daily mood data
