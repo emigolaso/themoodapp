@@ -61,6 +61,11 @@ openai_client = wrap_openai(openai.Client(api_key=OPENAI_API_KEY))
 
 @traceable
 def mood_analysis_pipeline(mood_data_csv,user_uuid):
+    ## Check if 'mood_data_csv' is empty
+    if pd.read_csv(StringIO(mood_data_csv)).empty:
+        print("No data in mood_data_csv. Skipping analysis.")
+        return  # End the function early if no data
+
     ## CHAIN 1: Run Analysis X Times Based on Observations
     ## Dynamically determine the number of runs: 3 * number of rows, capped at 10
     num_runs = min(3 * mood_data_csv.strip().count('\n') , 10)
@@ -179,14 +184,25 @@ def mood_summary(user_uuid, period):
 @traceable
 def weekly_manalysis_trimming(user_uuid):
     #This funciton is designed to be run on Monday Mornings.. Covering all prior analysis information from last monday - sunday 
+    
     #Pull the weekly historical data
     df_md = fetch_mood_analysis_historical(user_uuid,'weekly')
-    
+
+    # Check if 'df_md' is empty, and skip processing if so
+    if df_md.empty:
+        print("No data in weekly historical mood analysis. Skipping trimming.")
+        return  # End the function early if no data
+        
     messages = [
         {
             "role": "user",
             "content": instruction_weeklytrim5_rt
-            .replace("%0%", df_md[(df_md.category == 'recurring_triggers')].to_csv(index = False))
+            .replace("%0%",                      
+                     ("no records found" 
+                      if df_md[df_md.category == "recurring_triggers"].empty 
+                      else df_md[df_md.category == "recurring_triggers"].to_csv(index=False)
+                    )
+                    )
         }
     ]
     
@@ -207,8 +223,12 @@ def weekly_manalysis_trimming(user_uuid):
         {
             "role": "user",
             "content": instruction_weeklytrim5_mibc
-            .replace("%0%", df_md[(df_md.category == 'mood_impact_by_category')].to_csv(index = False))
-        }
+            .replace("%0%",                      
+                     ("no records found" 
+                      if df_md[df_md.category == "mood_impact_by_category"].empty 
+                      else df_md[df_md.category == "mood_impact_by_category"].to_csv(index=False)
+                    )
+                    )        }
     ]
     
     # Call the OpenAI API
@@ -228,7 +248,12 @@ def weekly_manalysis_trimming(user_uuid):
         {
             "role": "user",
             "content": instruction_weeklytrim5_se
-            .replace("%0%", df_md[(df_md.category == 'significant_events')].to_csv(index = False))
+            .replace("%0%",
+                     ("no records found" 
+                      if df_md[df_md.category == "significant_events"].empty 
+                      else df_md[df_md.category == "significant_events"].to_csv(index=False)
+                    )
+                    )        
         }
     ]
     
