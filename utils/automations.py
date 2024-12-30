@@ -1,7 +1,7 @@
 # Standard library imports
 import os
 import sys
-from datetime import datetime
+from datetime import timezone, datetime
 
 # Third-party library imports
 import pandas as pd
@@ -31,7 +31,7 @@ def run_mood_summary(period):
     # Get list of all unique user UUIDs
     user_uuids = get_all_user_uuids()  # You'll need to implement this function
     # Get current date and time, convert to EDT
-    current_datetime = pd.to_datetime(datetime.utcnow()).tz_localize(pytz.utc).tz_convert(pytz.timezone('US/Eastern'))
+    current_datetime = pd.to_datetime(datetime.now(timezone.utc).replace(tzinfo=None)).tz_localize(pytz.utc).tz_convert(pytz.timezone('US/Eastern'))
     day_of_week = current_datetime.weekday()
 
     for user_uuid in user_uuids:
@@ -57,7 +57,7 @@ def run_mood_summary(period):
 
         elif period == 'daily':
             # Check if it's between 12:00 AM and 12:21 AM
-            if current_datetime.time() >= pd.Timestamp('00:00:00').time() and current_datetime.time() <= pd.Timestamp('01:21:00').time():
+            if current_datetime.time() >= pd.Timestamp('00:00:00').time() and current_datetime.time() <= pd.Timestamp('21:21:00').time():
                 # Step 1: Collect the daily mood data from Supabase
                 mood_data_csv = mood_data('daily', user_uuid=user_uuid)
 
