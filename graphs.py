@@ -110,11 +110,37 @@ def generate_weekly_mood_plot(df):
     # Customize tick values and labels
     tick_vals = weekly_mood_avg['Week Start']
     tick_text = weekly_mood_avg['Week Start']
+    
     fig_weekly_moods.update_xaxes(
         tickmode='array',
         tickvals=tick_vals,
-        ticktext=tick_text
+        ticktext=tick_text,
+        rangeslider=dict(
+            visible=True,  # Enable the rangeslider
+            thickness=0.05,  # Make the slider minimal in thickness
+            bgcolor="white",  # Set the background color to blend with the graph
+            bordercolor="gray",  # Add a border for better visibility
+            borderwidth=1  # Keep the border thin for subtle design
+        ),
+        range=[
+            weekly_mood_avg['Week Start'].iloc[-8] - pd.Timedelta(days=3),  # Add padding to the start
+            weekly_mood_avg['Week Start'].iloc[-1] + pd.Timedelta(days=3)   # Add padding to the end
+        ]
     )
+    
+    # Update layout for better visualization
+    fig_weekly_moods.update_layout(
+        xaxis=dict(
+            title='Week Start',
+            rangeselector=dict(visible=False),  # Remove the range selector
+            showgrid=False  # Keep gridlines off for cleaner visuals
+        ),
+        yaxis=dict(title='Mood'),
+        margin=dict(l=50, r=50, t=50, b=50),
+        dragmode=False,  # Disable dragging to simplify interaction
+        height=500  # Set height to keep it proportional
+    )
+
 
     return fig_weekly_moods
 
