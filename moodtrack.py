@@ -6,6 +6,7 @@ from functools import wraps
 
 # Third-party library imports
 import pandas as pd
+import pytz
 import plotly.express as px
 import markdown
 from flask import (
@@ -141,23 +142,46 @@ def signup():
         flash(str(e), 'error')  # Flash the error message
         return redirect(url_for('signup_page'))
 
+# Setting timezone
+@app.route('/set_timezone', methods=['POST'])
+def set_timezone():
+    try:
+        data = request.json
+        timezone = data.get('timezone', 'UTC')  # Default to UTC if not provided
+        session['timezone'] = timezone  # Store in session
+        print(f"Timezone stored in session: {session.get('timezone')}")
+        return jsonify({"message": "Timezone set successfully"}), 200
+    except Exception as e:
+        return jsonify({"message": "Failed to set timezone", "error": str(e)}), 400
+
+
 # Route for the existing main page (index.html)
 @app.route('/')
 @login_required
 def index():
     # Check if the user is in the session
     if 'user_email' not in session:
-        return redirect(url_for('login_page')) # Redirect to login page if not logged in
+        return redirect(url_for('login_page'))  # Redirect to login page if not logged in
+
+    # Get the user's timezone from the session, default to UTC
+    user_timezone = session.get('timezone', 'UTC')
+
+    # Convert the current date to the user's timezone
+    try:
+        current_date = datetime.now(pytz.timezone(user_timezone)).date()
+    except Exception as e:
+        print(f"Error with timezone conversion: {e}")
+        current_date = datetime.utcnow().date()  # Fallback to UTC
 
     # Calculate the last full week's Monday
-    current_date = pd.to_datetime(datetime.today().date())
+    current_date = pd.to_datetime(current_date)
     last_monday = current_date - pd.Timedelta(days=current_date.weekday() + 7)
     last_monday_str = last_monday.strftime('%Y-%m-%d')
-    
+
     # Calculate the last full day's date (yesterday)
     last_day = current_date - pd.Timedelta(days=1)
     last_day_str = last_day.strftime('%Y-%m-%d')
-    
+
     # Pass the calculated date to the template
     return render_template('index.html', last_week=last_monday_str, last_day=last_day_str)
 

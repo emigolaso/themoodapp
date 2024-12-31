@@ -27,6 +27,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        //Capture the user's timezone and send it to the backend
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; // Fallback to UTC
+        console.log(`Detected timezone: ${timezone}`); // Debugging: log the timezone
+
+        // Send timezone to the backend
+        fetch('/set_timezone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ timezone: timezone })
+        }).then(response => {
+            if (response.ok) {
+                console.log('Timezone successfully sent to backend');
+            } else {
+                console.error('Failed to send timezone to backend');
+            }
+        }).catch(error => {
+            console.error('Error sending timezone:', error);
+        });
     }
 });
 
