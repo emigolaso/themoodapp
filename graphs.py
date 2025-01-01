@@ -1,5 +1,7 @@
 import pandas as pd
+import pytz
 import plotly.express as px
+from datetime import datetime
 from dash import html
 from flask import g, session
 from flask_caching import Cache
@@ -21,7 +23,7 @@ def load_data(supabase, SUPABASE_DB):
     if not g.user_uuid:
         raise ValueError("User not authenticated")
         
-    response = supabase.table(f'{SUPABASE_DB}').select('id, date, mood, description').eq('user_uuid', g.user_uuid).execute()
+    response = supabase.table(f'{SUPABASE_DB}').select('id, date, mood, description','timezone').eq('user_uuid', g.user_uuid).execute()
     data = response.data
     df = pd.DataFrame(data)
     df['date'] = pd.to_datetime(df['date'])
@@ -41,21 +43,45 @@ def generate_all_graphs(df):
 
 
 def generate_summary_statistics(df):
-    """Generate summary statistics for the mood data."""
-    mean_mood = df['mood'].mean()
-    median_mood = df['mood'].median()
-    mode_mood = df['mood'].mode()[0]
-    min_mood = df['mood'].min()
-    max_mood = df['mood'].max()
+    """Generate summary statistics for the mood data with timezone consideration."""
+    # Default to UTC if there are no entries
+    if df.empty:
+        user_timezone = pytz.timezone('UTC')
+    else:
+        # Pull the timezone from the latest entry
+        latest_entry_timezone = df.iloc[-1]['timezone']
+        user_timezone = pytz.timezone(latest_entry_timezone)
 
+    # Convert today's date to the user's timezone
+    today = pd.to_datetime(datetime.now(user_timezone).date())
+
+    # Filter for today's entries based on the user's timezone
+    today_entries = df[df['date'].dt.tz_localize('UTC').dt.tz_convert(user_timezone).dt.date == today.date()]
+
+    # Calculate monthly baseline mood
+    if not df.empty:
+        df['Month Start'] = df['date'].dt.to_period('M').dt.to_timestamp()  # Add monthly grouping
+        monthly_mood_avg = df.groupby('Month Start')['mood'].mean().reset_index()
+        baseline_mood = monthly_mood_avg['mood'].ewm(alpha=0.3).mean().iloc[-1]  # EMA of monthly averages
+    else:
+        baseline_mood = "No data"
+
+    #calculate the other stats
+    today_mood = today_entries['mood'].mean() if not today_entries.empty else "No entries today"
+    mood_entries_today = len(today_entries)
+    mood_entries_all_time = len(df)
+
+    # Create the summary stats layout
     summary_stats = html.Div([
-        html.H2('Summary Statistics'),
-        html.P(f'Mean Mood: {mean_mood:.2f}'),
-        html.P(f'Median Mood: {median_mood}'),
-        html.P(f'Mode Mood: {mode_mood}'),
-        html.P(f'Minimum Mood: {min_mood}'),
-        html.P(f'Maximum Mood: {max_mood}')
+        html.H2('Quick Stats'),
+        html.P([html.B("Today's Mood: "),  # Use html.B for bold text
+                f"{today_mood if isinstance(today_mood, str) else f'{today_mood:.2f}'}"]),
+        html.P([html.B("Baseline Mood: "),  # Use html.B for bold text
+                f"{baseline_mood if isinstance(baseline_mood, str) else f'{baseline_mood:.2f}'}"]),        
+        html.P(f"Mood Entries Today: {mood_entries_today}"),
+        html.P(f"Mood Entries (all time): {mood_entries_all_time}")
     ])
+    
     return summary_stats
 
 def generate_monthly_mood_plot(df, alpha=0.3):

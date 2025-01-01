@@ -96,6 +96,7 @@ def before_request():
 def logout():
     session.pop('user_email', None)  # Remove user data from the session
     session.pop('user_uuid', None)
+    session.pop('timezone', None)  
     return redirect(url_for('login_page'))  # Redirect to the login page after logging out
 
 
