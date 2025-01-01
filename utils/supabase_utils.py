@@ -191,8 +191,9 @@ def fetch_mood_analysis_historical(user_uuid, period='all'):
         # Filter the DataFrame for the last full week
         df = df[(df['date'] >= start_of_last_full_week) & (df['date'] <= end_of_last_full_week)]
     
-    # Sort the DataFrame by the 'id' column better than the date column which is a string
-    df = df.sort_values(by='id').reset_index(drop=True)
+    # Sort the DataFrame by date
+    df['date'] = pd.to_datetime(df['date']).dt.normalize() #Might be superfluous, but ensures this is a datetime object
+    df = df.sort_values(by='date').reset_index(drop=True)
     
     print(f"Number of historical mood analysis entries fetched: {len(df)}")
     return df
