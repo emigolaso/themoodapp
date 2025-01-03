@@ -56,6 +56,7 @@ def login_page():
 
     return render_template('login.html')  # Render the login page
 
+
 @app.route('/login', methods=['POST'])
 def login():
     # Check if the request is JSON or form data
@@ -63,9 +64,11 @@ def login():
         data = request.json
         email = data.get('email')
         password = data.get('password')
+        timezone = data.get('timezone', 'UTC')  # Default to UTC if not provided
     else:
         email = request.form.get('email')
         password = request.form.get('password')
+        timezone = request.form.get('timezone','UTC')  # Default to UTC if not provided
 
     if not email or not password:
         flash('Email and password are required', 'error')  # Flash error message
@@ -80,7 +83,9 @@ def login():
         # On successful login, Capture UUID and store user info in session
         session['user_email'] = email
         session['user_uuid'] = response.user.id  # Store the UUID
-        return redirect(url_for('index'))  # Redirect to the index page
+        session['timezone'] = timezone  # Store in session
+        print(f"Timezone stored in session: {session.get('timezone')}")
+        return jsonify({"success": True, "message": "Logged in successfully"}), 200  # Redirect to the index page
     
     except Exception as e:
         flash('Invalid login credentials, try again', 'error')  # Flash error message
@@ -142,18 +147,6 @@ def signup():
     except Exception as e:
         flash(str(e), 'error')  # Flash the error message
         return redirect(url_for('signup_page'))
-
-# Setting timezone
-@app.route('/set_timezone', methods=['POST'])
-def set_timezone():
-    try:
-        data = request.json
-        timezone = data.get('timezone', 'UTC')  # Default to UTC if not provided
-        session['timezone'] = timezone  # Store in session
-        print(f"Timezone stored in session: {session.get('timezone')}")
-        return jsonify({"message": "Timezone set successfully"}), 200
-    except Exception as e:
-        return jsonify({"message": "Failed to set timezone", "error": str(e)}), 400
 
 
 # Route for the existing main page (index.html)

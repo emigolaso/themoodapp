@@ -17,7 +17,7 @@ def init_cache(app):
     cache.init_app(app)
 
 # Load data from Supabase with cache
-@cache.cached(timeout=86400, key_prefix=lambda: f'supabase_data_cache_{g.user_uuid}')  # Cache for 24 hours per user
+@cache.cached(timeout=10800, key_prefix=lambda: f'supabase_data_cache_{g.user_uuid}')  # Cache for 24 hours per user
 def load_data(supabase, SUPABASE_DB):
     """Function to load data from Supabase for a specific user."""
     if not g.user_uuid:
@@ -30,7 +30,7 @@ def load_data(supabase, SUPABASE_DB):
     return df
 
 # Generate all graphs and stats with cache
-@cache.cached(timeout=86400, key_prefix=lambda: f'graphs_cache_{g.user_uuid}')  # Cache for 24 hours per user
+@cache.cached(timeout=10800, key_prefix=lambda: f'graphs_cache_{g.user_uuid}')  # Cache for 24 hours per user
 def generate_all_graphs(df):
     """Generate all graphs and summary statistics."""
     summary_stats = generate_summary_statistics(df)
