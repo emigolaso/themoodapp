@@ -2,6 +2,7 @@ import requests
 import json
 import pandas as pd
 from datetime import datetime, timezone
+import pytz
 import re
 from dotenv import load_dotenv
 import boto3
@@ -47,18 +48,20 @@ def upload_mood_summary_to_supabase(fname, user_uuid):
 
 
 
-def download_summary_from_supabase(period, user_uuid):
+def download_summary_from_supabase(period, user_uuid,user_timezone):
     try:
         if period == 'weekly':
             # Calculate the last Monday
-            current_date = pd.to_datetime(datetime.today().date())
+            #current_date = pd.to_datetime(datetime.today().date())
+            current_date = datetime.now(pytz.timezone(user_timezone)).date()
             last_monday = current_date - pd.Timedelta(days=current_date.weekday() + 7)
             date_str = last_monday.strftime('%Y-%m-%d')
             filename = f'{user_uuid}/weeklysummary_{user_uuid}_{date_str}.txt'
         
         elif period == 'daily':
             # Calculate yesterday's date
-            current_date = pd.to_datetime(datetime.today().date())
+            #current_date = pd.to_datetime(datetime.today().date())
+            current_date = datetime.now(pytz.timezone(user_timezone)).date()
             start_of_last_day = (current_date - pd.Timedelta(days=1)).strftime('%Y-%m-%d')
             filename = f'{user_uuid}/dailysummary_{user_uuid}_{start_of_last_day}.txt'
         
