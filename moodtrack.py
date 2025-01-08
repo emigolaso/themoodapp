@@ -82,7 +82,7 @@ def login():
         })
         # On successful login, Capture UUID and store user info in session
         session['user_email'] = email
-        session['user_uuid'] = str(response.user.id)  # Store the UUID as a STR. very important for downstream, RLS, queries
+        session['user_uuid'] = response.user.id  # Store the UUID
         session['timezone'] = timezone  # Store in session
         print(f"Timezone stored in session: {session.get('timezone')}")
         return jsonify({"success": True, "message": "Logged in successfully"}), 200  # Redirect to the index page
@@ -275,7 +275,8 @@ dash_app = Dash(__name__, server=app, url_base_pathname='/dashboard/')
 def generate_dashboard_layout():
     print(f"Generating dashboard for user UUID: {g.user_uuid}")
     # Load the data for graph generation and generate cached graphs
-    df = load_data(supabase, SUPABASE_DB)
+    sb: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY) #i have to recreate the client here for RLS. I'm not sure why. 
+    df = load_data(sb, SUPABASE_DB)
     summary_stats, fig_monthly_moods, fig_weekly_moods, fig_day_moods, fig_time_moods = generate_all_graphs(df)
     
     # Return the updated layout with the latest figures
