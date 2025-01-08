@@ -82,7 +82,7 @@ def login():
         })
         # On successful login, Capture UUID and store user info in session
         session['user_email'] = email
-        session['user_uuid'] = response.user.id  # Store the UUID
+        session['user_uuid'] = str(response.user.id)  # Store the UUID as a STR. very important for downstream, RLS, queries
         session['timezone'] = timezone  # Store in session
         print(f"Timezone stored in session: {session.get('timezone')}")
         return jsonify({"success": True, "message": "Logged in successfully"}), 200  # Redirect to the index page
